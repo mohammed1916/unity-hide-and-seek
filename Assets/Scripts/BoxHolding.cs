@@ -85,7 +85,7 @@ public class BoxHolding : MonoBehaviour
         meshRenderer.material = materialDefault;
         transform.position = startPosition;
         transform.rotation = startRotation;
-        rigidbody.velocity = Vector3.zero;
+        rigidbody.linearVelocity = Vector3.zero;
         rigidbody.angularVelocity = Vector3.zero;
     }
 }

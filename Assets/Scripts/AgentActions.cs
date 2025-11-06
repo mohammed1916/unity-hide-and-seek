@@ -56,7 +56,7 @@ public class AgentActions : MonoBehaviour
         rigidbody.AddForce(force * runSpeed, ForceMode.Impulse);
 
         // Additional movement drag
-        Vector3 currentVel = new Vector3(rigidbody.velocity.x, Mathf.Max(0f, rigidbody.velocity.y), rigidbody.velocity.z);
+        Vector3 currentVel = new Vector3(rigidbody.linearVelocity.x, Mathf.Max(0f, rigidbody.linearVelocity.y), rigidbody.linearVelocity.z);
         Vector3 dragForce = -currentVel * drag;
         rigidbody.AddForce(dragForce, ForceMode.Impulse);
 
@@ -69,7 +69,7 @@ public class AgentActions : MonoBehaviour
             // Adjust position
             Vector3 targetPosition = transform.position + transform.forward * grabDistance;
             Vector3 towards = targetPosition - grabbedBox.Rigidbody.position;
-            grabbedBox.Rigidbody.velocity = towards * 10f;
+            grabbedBox.Rigidbody.linearVelocity = towards * 10f;
 
             // Adjust rotation
             Quaternion targetRotation = transform.rotation * targetRelativeRotation;
@@ -153,7 +153,7 @@ public class AgentActions : MonoBehaviour
 
     public void ResetAgent()
     {
-        rigidbody.velocity = Vector3.zero;
+        rigidbody.linearVelocity = Vector3.zero;
         rigidbody.angularVelocity = Vector3.zero;
         grabbedBox = null;
         WasCaptured = false;
