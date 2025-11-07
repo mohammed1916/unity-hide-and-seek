@@ -73,6 +73,10 @@ public class GameController : MonoBehaviour
     private bool hidersPerfectGame = true;
     private StatsRecorder statsRecorder = null;
 
+    // Events for external systems to subscribe to (e.g., trajectory logger)
+    public event Action EpisodeStarted;
+    public event Action EpisodeEnded;
+
     public bool GracePeriodEnded
     {
         get { return episodeTimer >= episodeSteps * gracePeriodFraction; }
@@ -90,6 +94,9 @@ public class GameController : MonoBehaviour
             string content = File.ReadAllText(SystemArgs.GameParamsPath);
             JsonUtility.FromJsonOverwrite(content, this);
         }
+
+        // Notify subscribers that a new episode has started
+        EpisodeStarted?.Invoke();
     }
 
     private void Start()
@@ -264,6 +271,9 @@ public class GameController : MonoBehaviour
                 }
             }
         }
+
+        // Notify subscribers before actually ending the group episodes (so cumulative rewards are still available)
+        EpisodeEnded?.Invoke();
 
         hidersGroup.EndGroupEpisode();
         seekersGroup.EndGroupEpisode();
