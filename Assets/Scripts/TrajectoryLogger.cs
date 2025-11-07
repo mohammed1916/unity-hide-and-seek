@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using Unity.MLAgents;
 using Unity.MLAgents.SideChannels;
 
 [Serializable]
@@ -37,11 +38,16 @@ public class TrajectoryLogger : MonoBehaviour
 {
     public GameController gameController;
     public string outputFolder = "trajectories";
+    // How many FixedUpdate steps to skip between samples. Set to 1 to log every step.
+    public int sampleEveryNSteps = 1;
+    // If true, write summary scalars to the ML-Agents StatsRecorder (TensorBoard)
+    public bool logToStatsRecorder = true;
 
     private bool logging = false;
     private int episodeIndex = 0;
     private int stepCount = 0;
     private Dictionary<int, AgentTrajectory> trajectories = new Dictionary<int, AgentTrajectory>();
+    private int _sampleCounter = 0;
 
     private void Start()
     {
@@ -103,6 +109,7 @@ public class TrajectoryLogger : MonoBehaviour
     {
         logging = true;
         stepCount = 0;
+        _sampleCounter = 0;
         trajectories.Clear();
 
         // Initialize trajectories for currently active agents
@@ -148,6 +155,28 @@ public class TrajectoryLogger : MonoBehaviour
         File.WriteAllText(path, json);
         Debug.LogFormat("TrajectoryLogger: Wrote episode trajectory to {0}", path);
 
+        // Optionally log summary scalars to the ML-Agents StatsRecorder so they
+        // appear in TensorBoard under results/<run-id>/summaries when a trainer
+        // is connected.
+        if (logToStatsRecorder)
+        {
+            try
+            {
+                var stats = Academy.Instance.StatsRecorder;
+                stats.Add("Trajectories/AverageEpisodicReward", episode.averageEpisodicReward);
+                stats.Add("Trajectories/TeamReward", sumRewards);
+                foreach (var kv in trajectories)
+                {
+                    var safeName = kv.Value.name != null ? kv.Value.name.Replace("/", "_") : kv.Key.ToString();
+                    stats.Add($"Trajectories/Agent/{safeName}/CumulativeReward", kv.Value.cumulativeReward);
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogFormat("TrajectoryLogger: StatsRecorder add failed: {0}", e.Message);
+            }
+        }
+
         // Also try to stream the payload to any connected Python listener via SideChannel.
         try
         {
@@ -181,6 +210,13 @@ public class TrajectoryLogger : MonoBehaviour
     {
         if (!logging) return;
         stepCount++;
+        _sampleCounter++;
+
+        // Only sample every N steps to reduce log size if requested
+        if (sampleEveryNSteps > 1 && (_sampleCounter % sampleEveryNSteps) != 0)
+        {
+            return;
+        }
 
         // Record positions for all tracked agents
         foreach (var kv in trajectories)

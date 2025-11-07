@@ -2,7 +2,8 @@ behaviors:
   # Define a reusable PPO base config and then map it to the behavior names
   default_ppo: &default_ppo
     trainer_type: ppo
-    max_steps: 5000000
+    # max_steps: 5000000
+    max_steps: 25000
     time_horizon: 2048
     summary_freq: 10000
     keep_checkpoints: 5
