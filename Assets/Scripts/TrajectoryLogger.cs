@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using Unity.MLAgents.SideChannels;
 
 [Serializable]
 public class SerializableVector3
@@ -60,17 +61,17 @@ public class TrajectoryLogger : MonoBehaviour
 
         Directory.CreateDirectory(Path.Combine(Application.persistentDataPath, outputFolder));
 
-        // Try to register a SideChannel for streaming (optional). If ML-Agents is not present or
-        // Academy instance not available, this will fail silently.
+        // Try to register a SideChannel for streaming (optional). Use SideChannelManager which
+        // is available in this ML-Agents runtime version. If registration fails, keep working
+        // with file-based logging only.
         try
         {
             var channel = new TrajectorySideChannel();
-            Unity.MLAgents.Academy.Instance.RegisterSideChannel(channel);
+            SideChannelManager.RegisterSideChannel(channel);
             sideChannel = channel;
         }
         catch (System.Exception e)
         {
-            // Could not register side channel (e.g., older ML-Agents package). Continue without streaming.
             Debug.LogFormat("TrajectoryLogger: SideChannel registration failed: {0}", e.Message);
             sideChannel = null;
         }
@@ -82,6 +83,19 @@ public class TrajectoryLogger : MonoBehaviour
         {
             gameController.EpisodeStarted -= OnEpisodeStarted;
             gameController.EpisodeEnded -= OnEpisodeEnded;
+        }
+        // Unregister the side channel if we registered one.
+        try
+        {
+            if (sideChannel != null)
+            {
+                SideChannelManager.UnregisterSideChannel(sideChannel);
+                sideChannel = null;
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogFormat("TrajectoryLogger: SideChannel unregistration failed: {0}", e.Message);
         }
     }
 

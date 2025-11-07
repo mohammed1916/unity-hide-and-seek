@@ -1,5 +1,6 @@
 behaviors:
-  HideAndSeekBehavior:  # <-- Set this to the BehaviorName used by your agents (BehaviorParameters)
+  # Define a reusable PPO base config and then map it to the behavior names
+  default_ppo: &default_ppo
     trainer_type: ppo
     max_steps: 5000000
     time_horizon: 2048
@@ -23,6 +24,14 @@ behaviors:
         gamma: 0.99
         strength: 1.0
     # You can also enable curiosity/other reward signals here if desired
+
+  # Primary behavior name used in the project. If your Agent's BehaviorParameters
+  # use a different Behavior Name (e.g. "HideAndSeekAgent"), add an entry below
+  # or change the BehaviorParameters in the Unity inspector.
+  HideAndSeekBehavior: *default_ppo
+  # Alias for agents that use the name "HideAndSeekAgent" (common mismatch).
+  # Keeps the same settings as HideAndSeekBehavior so training will start.
+  HideAndSeekAgent: *default_ppo
 
 # NOTE: ML-Agents will log TensorBoard metrics (including mean rewards) to results/<run-id>/summaries
 # The Unity-side StatsRecorder (used in GameController) writes custom scalars under "Environment/*" which
