@@ -62,3 +62,6 @@ crashlytics-build.properties
 /[Uu]ser[Ss]ettings/
 /[Aa]ssets/ML-Agents.meta
 /[Aa]ssets/ML-Agents/
+
+#synlink
+ml-agents

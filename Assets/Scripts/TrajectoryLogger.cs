@@ -67,20 +67,7 @@ public class TrajectoryLogger : MonoBehaviour
 
         Directory.CreateDirectory(Path.Combine(Application.persistentDataPath, outputFolder));
 
-        // Try to register a SideChannel for streaming (optional). Use SideChannelManager which
-        // is available in this ML-Agents runtime version. If registration fails, keep working
-        // with file-based logging only.
-        try
-        {
-            var channel = new TrajectorySideChannel();
-            SideChannelManager.RegisterSideChannel(channel);
-            sideChannel = channel;
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogFormat("TrajectoryLogger: SideChannel registration failed: {0}", e.Message);
-            sideChannel = null;
-        }
+        // SideChannel streaming removed — this component writes episode JSON to disk only.
     }
 
     private void OnDestroy()
@@ -90,19 +77,7 @@ public class TrajectoryLogger : MonoBehaviour
             gameController.EpisodeStarted -= OnEpisodeStarted;
             gameController.EpisodeEnded -= OnEpisodeEnded;
         }
-        // Unregister the side channel if we registered one.
-        try
-        {
-            if (sideChannel != null)
-            {
-                SideChannelManager.UnregisterSideChannel(sideChannel);
-                sideChannel = null;
-            }
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogFormat("TrajectoryLogger: SideChannel unregistration failed: {0}", e.Message);
-        }
+        // No side-channel cleanup required.
     }
 
     private void OnEpisodeStarted()
@@ -177,19 +152,7 @@ public class TrajectoryLogger : MonoBehaviour
             }
         }
 
-        // Also try to stream the payload to any connected Python listener via SideChannel.
-        try
-        {
-            if (sideChannel != null)
-            {
-                sideChannel.SendJson(json);
-                Debug.Log("TrajectoryLogger: Sent episode payload via SideChannel.");
-            }
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogFormat("TrajectoryLogger: Failed to send SideChannel payload: {0}", e.Message);
-        }
+        // Streaming removed: payload is written to disk only.
     }
 
     private AgentActions FindAgentByInstanceId(int id)
@@ -229,6 +192,6 @@ public class TrajectoryLogger : MonoBehaviour
         }
     }
 
-    // Reference to the registered side channel (if available)
-    private TrajectorySideChannel sideChannel = null;
+
+    // No side-channel reference — file-based logging only.
 }
