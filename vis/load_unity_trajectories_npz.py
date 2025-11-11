@@ -1,7 +1,3 @@
-"""
-python vis/load_unity_trajectories_npz.py -i trajectory_logs -o vis_output --dashboard --visualize-episode 0
-"""
-
 import argparse
 import os
 import numpy as np
@@ -106,6 +102,13 @@ def main():
     if not episodes:
         print('No .npz episodes found in', args.input_dir)
         return
+
+    # --- Skip the first episode (index 0) ---
+    episodes = [ep for ep in episodes if ep["episode_index"] != 0]
+    if not episodes:
+        print("All episodes were skipped (no valid episodes after skipping index 0).")
+        return
+    print(f"Loaded {len(episodes)} episodes after skipping the first (index 0).")
 
     # Stack arrays
     print(f"Shape of loaded episodes: {[ep['positions'].shape for ep in episodes]}")
