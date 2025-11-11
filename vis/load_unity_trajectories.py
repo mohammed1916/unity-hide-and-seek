@@ -81,13 +81,13 @@ def episodes_to_arrays(episodes, pad_mode='edge'):
                 # last frames remain 0 or last diff
                 velocities[i, a_idx, :, :] = vel
             # collect agent row
-            cum_reward = a.get('cumulativeReward', None)
+            # cum_reward = a.get('cumulativeReward', None)
             agent_rows.append({
                 'episode': int(i),
                 'agent': int(a_idx),
                 'instanceId': a.get('instanceId', None),
                 'name': a.get('name', ''),
-                'cum_reward': float(cum_reward) if cum_reward is not None else np.nan,
+                # 'cum_reward': float(cum_reward) if cum_reward is not None else np.nan,
                 'steps': int(ep_steps),
             })
         # episode row

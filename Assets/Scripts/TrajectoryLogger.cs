@@ -49,8 +49,12 @@ public class TrajectoryLogger : MonoBehaviour
     private Dictionary<int, AgentTrajectory> trajectories = new Dictionary<int, AgentTrajectory>();
     private int _sampleCounter = 0;
 
+    // Singleton instance so agents can call RecordAgentStep
+    public static TrajectoryLogger Instance { get; private set; }
+
     private void Start()
     {
+        Instance = this;
         if (gameController == null)
         {
             gameController = FindObjectOfType<GameController>();
@@ -61,6 +65,7 @@ public class TrajectoryLogger : MonoBehaviour
             enabled = false;
             return;
         }
+        Debug.Log("TrajectoryLogger: Subscribing to GameController episode events.");
 
         gameController.EpisodeStarted += OnEpisodeStarted;
         gameController.EpisodeEnded += OnEpisodeEnded;
@@ -72,6 +77,7 @@ public class TrajectoryLogger : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (Instance == this) Instance = null;
         if (gameController != null)
         {
             gameController.EpisodeStarted -= OnEpisodeStarted;
@@ -172,23 +178,25 @@ public class TrajectoryLogger : MonoBehaviour
     private void FixedUpdate()
     {
         if (!logging) return;
+        // Advance counters; actual sampling is performed when agents call RecordAgentStep
         stepCount++;
         _sampleCounter++;
+    }
 
-        // Only sample every N steps to reduce log size if requested
-        if (sampleEveryNSteps > 1 && (_sampleCounter % sampleEveryNSteps) != 0)
+    /// <summary>
+    /// Called by agents (or other code) to record a per-step sample.
+    /// Respects the global sampling rate configured on the logger.
+    /// </summary>
+    /// <param name="instanceId">Agent GameObject instance id</param>
+    /// <param name="position">World position to record</param>
+    public void RecordAgentStep(int instanceId, Vector3 position)
+    {
+        if (!logging) return;
+        // Only record when sample counter matches sampling policy
+        if (sampleEveryNSteps > 1 && (_sampleCounter % sampleEveryNSteps) != 0) return;
+        if (trajectories.TryGetValue(instanceId, out var t))
         {
-            return;
-        }
-
-        // Record positions for all tracked agents
-        foreach (var kv in trajectories)
-        {
-            AgentActions agent = FindAgentByInstanceId(kv.Key);
-            if (agent != null)
-            {
-                kv.Value.positions.Add(new SerializableVector3(agent.transform.position));
-            }
+            t.positions.Add(new SerializableVector3(position));
         }
     }
 
