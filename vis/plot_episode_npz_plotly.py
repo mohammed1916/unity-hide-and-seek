@@ -27,6 +27,28 @@ from typing import Tuple
 import numpy as np
 import plotly.graph_objects as go
 
+# Default color palette (Plotly qualitative-like)
+DEFAULT_COLOR_TUPLES = [
+    (31, 119, 180),
+    (255, 127, 14),
+    (44, 160, 44),
+    (214, 39, 40),
+    (148, 103, 189),
+    (140, 86, 75),
+    (227, 119, 194),
+    (127, 127, 127),
+    (188, 189, 34),
+    (23, 190, 207),
+]
+
+
+def rgb(tup):
+    return f"rgb({tup[0]},{tup[1]},{tup[2]})"
+
+
+def rgba(tup, a: float):
+    return f"rgba({tup[0]},{tup[1]},{tup[2]},{a})"
+
 
 def find_positions_in_npz(npz: np.lib.npyio.NpzFile) -> Tuple[np.ndarray, str]:
     """
@@ -75,6 +97,7 @@ def normalize_positions(arr: np.ndarray) -> np.ndarray:
 def make_3d_animation(positions: np.ndarray, agent_names=None, title: str = "Episode") -> go.Figure:
     """
     Build a Plotly Figure with static trajectory lines and animated markers across time.
+    Also shows a persistent trailing path for each agent (the history up to current time).
     positions: (num_agents, T, 3)
     """
     num_agents, T, _ = positions.shape
@@ -87,56 +110,96 @@ def make_3d_animation(positions: np.ndarray, agent_names=None, title: str = "Epi
         xs = positions[i, :, 0]
         ys = positions[i, :, 1]
         zs = positions[i, :, 2]
+        col = DEFAULT_COLOR_TUPLES[i % len(DEFAULT_COLOR_TUPLES)]
         static_traces.append(
             go.Scatter3d(
                 x=xs,
                 y=ys,
                 z=zs,
                 mode="lines",
-                line=dict(width=2),
+                line=dict(width=2, color=rgba(col, 0.25)),
                 name=f"{agent_names[i]}_traj",
                 hoverinfo="name",
+                showlegend=False,
             )
         )
 
-    # Initial marker traces (at t=0)
-    init_markers = []
+    # We'll create, for each agent, two animated traces per frame:
+    #  - a moving marker (current position)
+    #  - a trailing path (history up to current time) which remains visible and grows
+    moving_markers = []
+    trailing_traces = []
     for i in range(num_agents):
-        init_markers.append(
+        # initial moving marker at t=0
+        col = DEFAULT_COLOR_TUPLES[i % len(DEFAULT_COLOR_TUPLES)]
+        moving_markers.append(
             go.Scatter3d(
                 x=[positions[i, 0, 0]],
                 y=[positions[i, 0, 1]],
                 z=[positions[i, 0, 2]],
                 mode="markers",
-                marker=dict(size=6),
+                marker=dict(size=8, color=rgb(col)),
                 name=f"{agent_names[i]}",
                 hoverinfo="name+text",
                 text=[f"t=0"],
+                showlegend=True,
+            )
+        )
+        # initial trailing path (starts with first point)
+        trailing_traces.append(
+            go.Scatter3d(
+                x=[positions[i, 0, 0]],
+                y=[positions[i, 0, 1]],
+                z=[positions[i, 0, 2]],
+                mode="lines+markers",
+                line=dict(width=4, color=rgb(col)),
+                marker=dict(size=3, color=rgb(col)),
+                name=f"{agent_names[i]}_trail",
+                hoverinfo="none",
+                showlegend=False,
             )
         )
 
-    # Build frames: one frame per time step with marker positions
+    # Build frames: one frame per time step with marker positions and trailing paths
     frames = []
     for t in range(T):
         data = []
-        # Keep trajectory lines as static in layout; frames only need marker positions
         for i in range(num_agents):
+            # moving marker for agent i at time t
+            col = DEFAULT_COLOR_TUPLES[i % len(DEFAULT_COLOR_TUPLES)]
             data.append(
                 go.Scatter3d(
                     x=[positions[i, t, 0]],
                     y=[positions[i, t, 1]],
                     z=[positions[i, t, 2]],
                     mode="markers",
-                    marker=dict(size=6),
+                    marker=dict(size=8, color=rgb(col)),
                     name=f"{agent_names[i]}",
                     hoverinfo="name+text",
                     text=[f"t={t}"],
                 )
             )
+            # trailing path for agent i: history from 0..t (persistent)
+            xs = positions[i, : t + 1, 0]
+            ys = positions[i, : t + 1, 1]
+            zs = positions[i, : t + 1, 2]
+            data.append(
+                go.Scatter3d(
+                    x=xs,
+                    y=ys,
+                    z=zs,
+                    mode="lines+markers",
+                    line=dict(width=4, color=rgb(col)),
+                    marker=dict(size=3, color=rgb(col)),
+                    name=f"{agent_names[i]}_trail",
+                    hoverinfo="none",
+                    showlegend=False,
+                )
+            )
         frames.append(go.Frame(data=data, name=str(t)))
 
-    # Compose the figure with static traces + initial markers
-    fig = go.Figure(data=static_traces + init_markers, frames=frames)
+    # Compose the figure: static full trajectories, then for each agent moving marker + trailing trace
+    fig = go.Figure(data=static_traces + moving_markers + trailing_traces, frames=frames)
 
     # Slider and play button
     sliders = [
