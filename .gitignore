@@ -65,3 +65,11 @@ crashlytics-build.properties
 
 #synlink
 ml-agents
+results/*
+vis_output/*
+vis_output1/*
+*.prefab
+
+trajectory_logs/*
+
+*.pyc
