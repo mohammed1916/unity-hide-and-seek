@@ -38,4 +38,4 @@ behaviors:
 # NOTE: ML-Agents will log TensorBoard metrics (including mean rewards) to results/<run-id>/summaries
 # The Unity-side StatsRecorder (used in GameController) writes custom scalars under "Environment/*" which
 # will also be visible in TensorBoard. The trajectory JSON files are written to
-# Application.persistentDataPath/trajectories by the TrajectoryLogger component.
+# trajectory_logs_ by the TrajectoryLogger component.
