@@ -3,7 +3,7 @@ behaviors:
   default_ppo: &default_ppo
     trainer_type: ppo
     # max_steps: 5000000
-    max_steps: 5000
+    max_steps: 50000
     time_horizon: 2048
     # summary_freq: 10000
     summary_freq: 1
@@ -25,15 +25,103 @@ behaviors:
       extrinsic:
         gamma: 0.99
         strength: 1.0
-    # You can also enable curiosity/other reward signals here if desired
+  # === HIDER TEAM ===
+  Hider:
+    <<: *default_ppo
+    team_id: 0
+    self_play:
+      window: 5
+      play_against_latest_model_ratio: 0.5
+      save_steps: 50000
+      swap_steps: 20000
+      team_change: 1.0
+    hyperparameters:
+      batch_size: 2048
+      buffer_size: 40960
+      learning_rate: 3.0e-4
+      beta: 0.005
+      epsilon: 0.2
+      lambd: 0.95
+      num_epoch: 10
+    reward_signals:
+      extrinsic:
+        gamma: 0.99
+        strength: 1.0
+      curiosity:
+        strength: 0.02
+        gamma: 0.99
+        encoding_size: 128
+    network_settings:
+      hidden_units: 256
+      num_layers: 3
 
-  # Primary behavior name used in the project. If your Agent's BehaviorParameters
-  # use a different Behavior Name (e.g. "HideAndSeekAgent"), add an entry below
-  # or change the BehaviorParameters in the Unity inspector.
-  HideAndSeekBehavior: *default_ppo
-  # Alias for agents that use the name "HideAndSeekAgent" (common mismatch).
-  # Keeps the same settings as HideAndSeekBehavior so training will start.
-  HideAndSeekAgent: *default_ppo
+  # === SEEKER TEAM ===
+  Seeker:
+    <<: *default_ppo
+    team_id: 1
+    self_play:
+      window: 5
+      play_against_latest_model_ratio: 0.5
+      save_steps: 50000
+      swap_steps: 20000
+      team_change: 1.0
+    hyperparameters:
+      batch_size: 2048
+      buffer_size: 40960
+      learning_rate: 3.0e-4
+      beta: 0.005
+      epsilon: 0.2
+      lambd: 0.95
+      num_epoch: 10
+    reward_signals:
+      extrinsic:
+        gamma: 0.99
+        strength: 1.0
+      gail:
+        strength: 0.05
+        demo_path: demos/seeker_expert.demo
+    network_settings:
+      hidden_units: 256
+      num_layers: 3
+# === Global Settings ===
+environment_parameters:
+  team_size:
+    curriculum:
+      - name: initial
+        completion_criteria:
+          measure: reward
+          behavior: Hider
+          threshold: 0.7
+        value: 3
+      - name: full_teams
+        value: 3
+  arena_size: 20
+  observation_radius: 10
+
+engine_settings:
+  width: 1280
+  height: 720
+  quality_level: 1
+  time_scale: 20
+  capture_frame_rate: 60
+  no_graphics: true
+
+checkpoint_settings:
+  run_id: hide_seek_selfplay_v3
+  initialize_from: null
+  resume: false
+
+torch_settings:
+  device: cuda
+  # You can also enable curiosity/other reward signals here if desired
+
+  # # Primary behavior name used in the project. If your Agent's BehaviorParameters
+  # # use a different Behavior Name (e.g. "HideAndSeekAgent"), add an entry below
+  # # or change the BehaviorParameters in the Unity inspector.
+  # HideAndSeekBehavior: *default_ppo
+  # # Alias for agents that use the name "HideAndSeekAgent" (common mismatch).
+  # # Keeps the same settings as HideAndSeekBehavior so training will start.
+  # HideAndSeekAgent: *default_ppo
 
 # NOTE: ML-Agents will log TensorBoard metrics (including mean rewards) to results/<run-id>/summaries
 # The Unity-side StatsRecorder (used in GameController) writes custom scalars under "Environment/*" which
