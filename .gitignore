@@ -71,5 +71,6 @@ vis_output1/*
 *.prefab
 
 trajectory_logs/*
+trajectory_logs_/*
 
 *.pyc
