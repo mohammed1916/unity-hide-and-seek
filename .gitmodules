@@ -1,0 +1,3 @@
+[submodule "trajectory_logs_"]
+	path = trajectory_logs_
+	url = https://github.com/mohammed1916/unity-hide-and-seek-trajectories
