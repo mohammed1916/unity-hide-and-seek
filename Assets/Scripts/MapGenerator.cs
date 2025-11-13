@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
+using Unity.MLAgents.Policies;
 using Random = UnityEngine.Random;
 
 public class MapGenerator : MonoBehaviour
@@ -21,10 +22,10 @@ public class MapGenerator : MonoBehaviour
     [SerializeField] private Transform agentParent = null;
     [SerializeField] private AgentActions hiderPrefab = null;
     [SerializeField] private AgentActions seekerPrefab = null;
-    [SerializeField] private int numHidersMin = 3;
-    [SerializeField] private int numHidersMax = 3;
-    [SerializeField] private int numSeekersMin = 3;
-    [SerializeField] private int numSeekersMax = 3;
+    [SerializeField] private int numHidersMin = 1;
+    [SerializeField] private int numHidersMax = 1;
+    [SerializeField] private int numSeekersMin = 1;
+    [SerializeField] private int numSeekersMax = 1;
     [SerializeField] private float agentY = 1f;
     [SerializeField] private float agentRadius = 0.75f;
 
@@ -74,6 +75,16 @@ public class MapGenerator : MonoBehaviour
 
         hiders = Enumerable.Range(0, numHidersMax).Select(_ => Instantiate(hiderPrefab, agentParent)).ToArray();
         seekers = Enumerable.Range(0, numSeekersMax).Select(_ => Instantiate(seekerPrefab, agentParent)).ToArray();
+
+        // Set unique BehaviorName for each agent
+        for (int i = 0; i < hiders.Length; i++)
+        {
+            hiders[i].GetComponent<BehaviorParameters>().BehaviorName = "Hider" + i;
+        }
+        for (int i = 0; i < seekers.Length; i++)
+        {
+            seekers[i].GetComponent<BehaviorParameters>().BehaviorName = "Seeker" + i;
+        }
 
         if (!instantiateBoxes)
         {

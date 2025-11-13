@@ -41,8 +41,8 @@ public class GameController : MonoBehaviour
 
     [Header("Inference")]
     [SerializeField] private bool inferenceMode = false;
-    [SerializeField] private NNModel hidersCheckpoint = null;
-    [SerializeField] private NNModel seekersCheckpoint = null;
+    [SerializeField] private NNModel[] hidersCheckpoints = null;
+    [SerializeField] private NNModel[] seekersCheckpoints = null;
 
     [Header("Debug")]
     [SerializeField] private bool debugDrawBoxHold = true;
@@ -120,8 +120,20 @@ public class GameController : MonoBehaviour
 
         if (inferenceMode)
         {
-            hiderInstances.ForEach(hider => hider.SwitchToInference(hidersCheckpoint));
-            seekerInstances.ForEach(hider => hider.SwitchToInference(seekersCheckpoint));
+            for (int i = 0; i < hiderInstances.Count; i++)
+            {
+                if (i < hidersCheckpoints.Length && hidersCheckpoints[i] != null)
+                {
+                    hiderInstances[i].SwitchToInference(hidersCheckpoints[i]);
+                }
+            }
+            for (int i = 0; i < seekerInstances.Count; i++)
+            {
+                if (i < seekersCheckpoints.Length && seekersCheckpoints[i] != null)
+                {
+                    seekerInstances[i].SwitchToInference(seekersCheckpoints[i]);
+                }
+            }
         }
 
         hidersGroup = new SimpleMultiAgentGroup();
