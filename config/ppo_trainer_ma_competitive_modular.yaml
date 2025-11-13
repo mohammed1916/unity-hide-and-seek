@@ -1,5 +1,5 @@
 behaviors:
-  # Define a reusable PPO base config and then map it to the behavior names
+  # === BASE PPO CONFIGURATION ===
   default_ppo: &default_ppo
     trainer_type: ppo
     # max_steps: 5000000
@@ -10,15 +10,10 @@ behaviors:
     keep_checkpoints: 5
     threaded: true
     hyperparameters:
-      batch_size: 2048
-      # batch_size: 4096        
-      # buffer_size: 20480
-      buffer_size: 40960
-      # learning_rate: 0.0003
-      learning_rate: 0.003
-      # beta: 5.0e-3
-      # beta: 5.0e-1
-      beta: 0.005
+      batch_size: 2048            # (was 4096)
+      buffer_size: 40960          # (was 20480)
+      learning_rate: 0.003        # (was 0.0003)
+      beta: 0.005                 # (was 5.0e-3 / 5.0e-1)
       epsilon: 0.2
       lambd: 0.95
       num_epoch: 10
@@ -30,8 +25,9 @@ behaviors:
       extrinsic:
         gamma: 0.99
         strength: 1.0
-  # === HIDER TEAM ===
-  Hider0:
+
+  # === TEMPLATE FOR HIDER TEAM ===
+  hider_base: &hider_base
     <<: *default_ppo
     self_play:
       window: 5
@@ -42,8 +38,7 @@ behaviors:
     hyperparameters:
       batch_size: 2048
       buffer_size: 40960
-      # learning_rate: 3.0e-4
-      learning_rate: 0.003
+      learning_rate: 0.003        # (was 3.0e-4)
       beta: 0.005
       epsilon: 0.2
       lambd: 0.95
@@ -59,113 +54,8 @@ behaviors:
       hidden_units: 256
       num_layers: 3
 
-  # # Additional behavior entries for the instantiated agents (Unity creates Seeker1/2 and Hider1/2)
-  # # These reuse the default PPO settings so every Behavior name connected by Unity
-  # # is present in the trainer config.
-  # Hider1:
-  #   <<: *default_ppo
-  #   self_play:
-  #     window: 5
-  #     play_against_latest_model_ratio: 0.5
-  #     save_steps: 2000
-  #     swap_steps: 5000
-  #     team_change: 1.0
-  #   hyperparameters:
-  #     batch_size: 2048
-  #     buffer_size: 40960
-  #     learning_rate: 3.0e-4
-  #     beta: 0.005
-  #     epsilon: 0.2
-  #     lambd: 0.95
-  #     num_epoch: 10
-  #   reward_signals:
-  #     extrinsic:
-  #       gamma: 0.99
-  #       strength: 1.0
-  #     curiosity:
-  #       strength: 0.02
-  #       gamma: 0.99
-  #   network_settings:
-  #     hidden_units: 256
-  #     num_layers: 3
-
-  # Hider2:
-  #   <<: *default_ppo
-  #   self_play:
-  #     window: 5
-  #     play_against_latest_model_ratio: 0.5
-  #     save_steps: 2000
-  #     swap_steps: 5000
-  #     team_change: 1.0
-  #   hyperparameters:
-  #     batch_size: 2048
-  #     buffer_size: 40960
-  #     learning_rate: 3.0e-4
-  #     beta: 0.005
-  #     epsilon: 0.2
-  #     lambd: 0.95
-  #     num_epoch: 10
-  #   reward_signals:
-  #     extrinsic:
-  #       gamma: 0.99
-  #       strength: 1.0
-  #     curiosity:
-  #       strength: 0.02
-  #       gamma: 0.99
-  #   network_settings:
-  #     hidden_units: 256
-  #     num_layers: 3
-
-  # Seeker1:
-  #   <<: *default_ppo
-  #   self_play:
-  #     window: 5
-  #     play_against_latest_model_ratio: 0.5
-  #     save_steps: 2000
-  #     swap_steps: 5000
-  #     team_change: 1.0
-  #   hyperparameters:
-  #     batch_size: 2048
-  #     buffer_size: 40960
-  #     learning_rate: 3.0e-4
-  #     beta: 0.005
-  #     epsilon: 0.2
-  #     lambd: 0.95
-  #     num_epoch: 10
-  #   reward_signals:
-  #     extrinsic:
-  #       gamma: 0.99
-  #       strength: 1.0
-  #   network_settings:
-  #     hidden_units: 256
-  #     num_layers: 3
-
-  # Seeker2:
-  #   <<: *default_ppo
-  #   self_play:
-  #     window: 5
-  #     play_against_latest_model_ratio: 0.5
-  #     save_steps: 2000
-  #     swap_steps: 5000
-  #     team_change: 1.0
-  #   hyperparameters:
-  #     batch_size: 2048
-  #     buffer_size: 40960
-  #     learning_rate: 3.0e-4
-  #     beta: 0.005
-  #     epsilon: 0.2
-  #     lambd: 0.95
-  #     num_epoch: 10
-  #   reward_signals:
-  #     extrinsic:
-  #       gamma: 0.99
-  #       strength: 1.0
-  #   network_settings:
-  #     hidden_units: 256
-  #     num_layers: 3
-
-  # === SEEKER TEAM ===
-  Seeker0:
+  # === TEMPLATE FOR SEEKER TEAM ===
+  seeker_base: &seeker_base
     <<: *default_ppo
     self_play:
       window: 5
@@ -176,8 +66,7 @@ behaviors:
     hyperparameters:
       batch_size: 2048
       buffer_size: 40960
-      # learning_rate: 3.0e-4
-      learning_rate: 0.003
+      learning_rate: 0.003        # (was 3.0e-4)
       beta: 0.005
       epsilon: 0.2
       lambd: 0.95
@@ -193,35 +82,19 @@ behaviors:
       hidden_units: 256
       num_layers: 3
 
-  # Add entry for HideAndSeekAgent (the behavior name from Unity)
-  HideAndSeekAgent:
-    # trainer_type: mappo
-    <<: *default_ppo
-    self_play:
-      window: 5
-      play_against_latest_model_ratio: 0.5
-      save_steps: 2000
-      swap_steps: 5000
-      team_change: 1.0
-    hyperparameters:
-      batch_size: 2048
-      buffer_size: 40960
-      # learning_rate: 3.0e-4
-      learning_rate: 0.003
-      beta: 0.005
-      epsilon: 0.2
-      lambd: 0.95
-      num_epoch: 10
-    reward_signals:
-      extrinsic:
-        gamma: 0.99
-        strength: 1.0
-      curiosity:
-        strength: 0.02
-        gamma: 0.99
-    network_settings:
-      hidden_units: 256
-      num_layers: 3
+  # === HIDER TEAM AGENTS ===
+  Hider0: *hider_base
+  Hider1: *hider_base
+  Hider2: *hider_base
+
+  # === SEEKER TEAM AGENTS ===
+  Seeker0: *seeker_base
+  Seeker1: *seeker_base
+  Seeker2: *seeker_base
+
+  # === COMPOSITE BEHAVIOR ===
+  HideAndSeekAgent: *default_ppo
+
 # environment_parameters:
 #   team_size:
 #     curriculum:
@@ -233,8 +106,8 @@ behaviors:
 #         value: 1
 #       - name: full_teams
 #         value: 1
-  # arena_size: 20
-  # observation_radius: 10
+#   arena_size: 20
+#   observation_radius: 10
 
 engine_settings:
   width: 1280
@@ -251,17 +124,3 @@ checkpoint_settings:
 
 torch_settings:
   device: cuda
-  # You can also enable curiosity/other reward signals here if desired
-
-  # # Primary behavior name used in the project. If your Agent's BehaviorParameters
-  # # use a different Behavior Name (e.g. "HideAndSeekAgent"), add an entry below
-  # # or change the BehaviorParameters in the Unity inspector.
-  # HideAndSeekBehavior: *default_ppo
-  # # Alias for agents that use the name "HideAndSeekAgent" (common mismatch).
-  # # Keeps the same settings as HideAndSeekBehavior so training will start.
-  # HideAndSeekAgent: *default_ppo
-
-# NOTE: ML-Agents will log TensorBoard metrics (including mean rewards) to results/<run-id>/summaries
-# The Unity-side StatsRecorder (used in GameController) writes custom scalars under "Environment/*" which
-# will also be visible in TensorBoard. The trajectory JSON files are written to
-# Application.persistentDataPath/trajectories by the TrajectoryLogger component.
