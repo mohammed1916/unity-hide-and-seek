@@ -2,6 +2,9 @@
 
 The visualisatoin is based on this repo [mohammed1916/eval_ppo](https://github.com/mohammed1916/eval_ppo), and there are submodules for results: [mohammed1916/unity-hide-and-seek-results](https://github.com/mohammed1916/unity-hide-and-seek-results) and trajectories: [mohammed1916/unity-hide-and-seek-trajectories](https://github.com/mohammed1916/unity-hide-and-seek-trajectories)
 
+```
+mlagents-learn config/ppo_trainer_ma_competitive.yaml --run-id=run40 --env-args game_params=config/predator_prey_v1/game_params.json arena_params=config/predator_prey_v1/arena_params.json
+```
 
 
 ![screencap](/screencap/screencap1_360p.gif)
