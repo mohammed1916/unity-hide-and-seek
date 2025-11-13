@@ -2,19 +2,20 @@ behaviors:
   # === BASE PPO CONFIGURATION ===
   default_ppo: &default_ppo
     trainer_type: ppo
-    # max_steps: 5000000
     max_steps: 100000
     time_horizon: 2048
-    # summary_freq: 10000
     summary_freq: 1
     keep_checkpoints: 5
     threaded: true
     hyperparameters:
-      batch_size: 2048            # (was 4096)
-      buffer_size: 40960          # (was 20480)
-      learning_rate: 0.003        # (was 0.0003)
-      beta: 0.005                 # (was 5.0e-3 / 5.0e-1)
+      batch_size: 2048
+      buffer_size: 40960
+      learning_rate: 0.003
+      learning_rate_schedule: linear
+      beta: 0.005
+      beta_schedule: linear
       epsilon: 0.2
+      epsilon_schedule: linear
       lambd: 0.95
       num_epoch: 10
     network_settings:
@@ -38,9 +39,12 @@ behaviors:
     hyperparameters:
       batch_size: 2048
       buffer_size: 40960
-      learning_rate: 0.003        # (was 3.0e-4)
+      learning_rate: 0.003
+      learning_rate_schedule: linear
       beta: 0.005
+      beta_schedule: linear
       epsilon: 0.2
+      epsilon_schedule: linear
       lambd: 0.95
       num_epoch: 10
     reward_signals:
@@ -66,9 +70,12 @@ behaviors:
     hyperparameters:
       batch_size: 2048
       buffer_size: 40960
-      learning_rate: 0.003        # (was 3.0e-4)
+      learning_rate: 0.003
+      learning_rate_schedule: linear
       beta: 0.005
+      beta_schedule: linear
       epsilon: 0.2
+      epsilon_schedule: linear
       lambd: 0.95
       num_epoch: 10
     reward_signals:
@@ -94,20 +101,6 @@ behaviors:
 
   # === COMPOSITE BEHAVIOR ===
   HideAndSeekAgent: *default_ppo
-
-# environment_parameters:
-#   team_size:
-#     curriculum:
-#       - name: initial
-#         completion_criteria:
-#           measure: reward
-#           behavior: HideAndSeekAgent
-#           threshold: 0.7
-#         value: 1
-#       - name: full_teams
-#         value: 1
-#   arena_size: 20
-#   observation_radius: 10
 
 engine_settings:
   width: 1280
