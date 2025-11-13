@@ -171,8 +171,10 @@ public class MapGenerator : MonoBehaviour
         List<(Vector2, float)> itemPlacement = new List<(Vector2, float)>();
 
         // Random.InitState(System.Environment.TickCount);
-        NumHiders = 1;
-        NumSeekers = 1;
+        NumHiders = 3;
+        NumSeekers = 3;
+        // NumHiders = 1;
+        // NumSeekers = 1;
         // NumHiders = Random.Range(numHidersMin, numHidersMax + 1);
         // NumSeekers = Random.Range(numSeekersMin, numSeekersMax + 1);
         for (int i = 0; i < NumHiders; i++)
