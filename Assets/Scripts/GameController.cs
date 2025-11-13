@@ -88,6 +88,11 @@ public class GameController : MonoBehaviour
 
     private void Awake()
     {
+        // Ensure Unity keeps running even when the editor window loses focus.
+        // This prevents the environment from pausing when you switch to another app
+        // (helps avoid trainer worker restarts / hangs while training).
+        Application.runInBackground = true;
+
         if (SystemArgs.GameParamsPath != null)
         {
             Debug.Log("Game controller configuration file: " + SystemArgs.GameParamsPath);
