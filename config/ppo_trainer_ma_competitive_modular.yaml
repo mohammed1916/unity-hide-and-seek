@@ -8,13 +8,13 @@ behaviors:
     keep_checkpoints: 1
     threaded: true
     hyperparameters:
-      batch_size: 2048
+      batch_size: 512 # from 2048
       buffer_size: 8192 # 40960
       learning_rate: 0.001 # from  0.003
       learning_rate_schedule: linear
       beta: 0.01 # 0.005
       beta_schedule: linear
-      epsilon: 0.3 # 0.2
+      epsilon: 0.4 # 0.2
       epsilon_schedule: linear
       lambd: 0.95
       num_epoch: 10
