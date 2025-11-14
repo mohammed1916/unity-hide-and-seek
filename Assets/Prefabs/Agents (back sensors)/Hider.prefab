@@ -18,6 +18,7 @@ GameObject:
   - component: {fileID: 9081539010691202653}
   - component: {fileID: 7431314353943756011}
   - component: {fileID: 4112530154911966434}
+  - component: {fileID: 2311528924750538148}
   m_Layer: 0
   m_Name: Hider
   m_TagString: Hider
@@ -191,6 +192,7 @@ MonoBehaviour:
   MaxStep: 2000
   agentActions: {fileID: 1881455841911720016}
   teamBufferSensor: {fileID: 6381542979004353725}
+  boxBufferSensor: {fileID: 2311528924750538148}
   dummyRaycastSensors:
   - {fileID: 8750581795964370546}
   - {fileID: 7920731599552111282}
@@ -256,6 +258,21 @@ MonoBehaviour:
   outputFolder: trajectories
   sampleEveryNSteps: 1
   logToStatsRecorder: 1
+--- !u!114 &2311528924750538148
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1881455841911720022}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd8012d5925524537b27131fef517017, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.ML-Agents::Unity.MLAgents.Sensors.BufferSensorComponent
+  m_SensorName: BufferSensorHider
+  m_ObservableSize: 3
+  m_MaxNumObservables: 10
 --- !u!1 &3626823193223142493
 GameObject:
   m_ObjectHideFlags: 0

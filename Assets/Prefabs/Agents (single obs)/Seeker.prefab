@@ -5,8 +5,24 @@ PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
+    serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: -3462630808807315297, guid: c550aa13f429b00479982c339f712c8b,
+        type: 3}
+      propertyPath: m_SensorName
+      value: BufferSensorSingleSeeker
+      objectReference: {fileID: 0}
+    - target: {fileID: -3462630808807315297, guid: c550aa13f429b00479982c339f712c8b,
+        type: 3}
+      propertyPath: m_ObservableSize
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: -3462630808807315297, guid: c550aa13f429b00479982c339f712c8b,
+        type: 3}
+      propertyPath: m_MaxNumObservables
+      value: 10
+      objectReference: {fileID: 0}
     - target: {fileID: 3198067207007129522, guid: c550aa13f429b00479982c339f712c8b,
         type: 3}
       propertyPath: m_Name
@@ -79,7 +95,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3198067207007129527, guid: c550aa13f429b00479982c339f712c8b,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 7e3a55461e5515442bde2867771f09fe, type: 2}
     - target: {fileID: 5221234021268126137, guid: c550aa13f429b00479982c339f712c8b,
@@ -88,4 +104,7 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c550aa13f429b00479982c339f712c8b, type: 3}

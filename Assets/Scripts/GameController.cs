@@ -247,6 +247,11 @@ public class GameController : MonoBehaviour
         }
     }
 
+    public IEnumerable<BoxHolding> GetBoxes()
+    {
+        return holdObjects.Where(b => b != null);
+    }
+
 
     private void EndEpisode()
     {

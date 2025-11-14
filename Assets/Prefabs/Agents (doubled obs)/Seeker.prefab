@@ -5,6 +5,7 @@ PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
+    serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 528633514186532188, guid: 379df8dd3bebf214eabff792cb18b0d2,
@@ -17,6 +18,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: Raycast Sensor (Seeker)
       objectReference: {fileID: 0}
+    - target: {fileID: 2741491704468262483, guid: 379df8dd3bebf214eabff792cb18b0d2,
+        type: 3}
+      propertyPath: m_SensorName
+      value: BufferSensorDoubleSeeker
+      objectReference: {fileID: 0}
     - target: {fileID: 4183319885125584200, guid: 379df8dd3bebf214eabff792cb18b0d2,
         type: 3}
       propertyPath: m_SensorName
@@ -24,7 +30,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4598261876671290336, guid: 379df8dd3bebf214eabff792cb18b0d2,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 7e3a55461e5515442bde2867771f09fe, type: 2}
     - target: {fileID: 4598261876671290339, guid: 379df8dd3bebf214eabff792cb18b0d2,
@@ -118,4 +124,7 @@ PrefabInstance:
       value: Raycast Sensor (Hider)
       objectReference: {fileID: 0}
     m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 379df8dd3bebf214eabff792cb18b0d2, type: 3}

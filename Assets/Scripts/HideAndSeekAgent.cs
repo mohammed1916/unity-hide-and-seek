@@ -8,8 +8,29 @@ public class HideAndSeekAgent : Agent
 {
     [SerializeField] private AgentActions agentActions = null;
     [SerializeField] private BufferSensorComponent teamBufferSensor = null;
+    [SerializeField] private BufferSensorComponent boxBufferSensor = null;
     [SerializeField] private VectorSensorComponent[] dummyRaycastSensors = null;
     [SerializeField] private int[] dummyRaycastSensorSizes = null;
+
+    protected override void Awake()
+    {
+        base.Awake(); // Call base Awake first
+        if (teamBufferSensor != null)
+        {
+            teamBufferSensor.SensorName = gameObject.name + "_TeamBuffer";
+        }
+        if (boxBufferSensor != null)
+        {
+            boxBufferSensor.SensorName = gameObject.name + "_BoxBuffer";
+        }
+        for (int i = 0; i < dummyRaycastSensors.Length; i++)
+        {
+            if (dummyRaycastSensors[i] != null)
+            {
+                dummyRaycastSensors[i].SensorName = gameObject.name + "_DummyRaycast" + i;
+            }
+        }
+    }
 
     public override void CollectObservations(VectorSensor sensor)
     {
@@ -43,6 +64,16 @@ public class HideAndSeekAgent : Agent
 
                 teamBufferSensor.AppendObservation(obs);
             }
+        }
+
+        foreach (BoxHolding box in agentActions.GameController.GetBoxes())
+        {
+            float[] boxObs = new float[3];
+            Vector3 boxPosition = box.transform.position - platformCenter;
+            boxObs[0] = boxPosition.x;
+            boxObs[1] = boxPosition.y;
+            boxObs[2] = boxPosition.z;
+            boxBufferSensor.AppendObservation(boxObs);
         }
 
         for (int i = 0; i < dummyRaycastSensorSizes.Length; i++)
