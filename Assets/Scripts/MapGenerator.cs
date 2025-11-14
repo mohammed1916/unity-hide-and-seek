@@ -33,8 +33,8 @@ public class MapGenerator : MonoBehaviour
     // instantiateBoxes must be on if box count should be randomized every episode
     [SerializeField] private bool instantiateBoxes = true;
     [SerializeField] private BoxHolding[] boxPrefabs = null;
-    [SerializeField] private int numBoxesMin = 2;
-    [SerializeField] private int numBoxesMax = 4;
+    [SerializeField] private int numBoxesMin = 8;
+    [SerializeField] private int numBoxesMax = 14;
     [SerializeField] private float boxY = 1f;
     [SerializeField] private float objectRadius = 1.5f;
 

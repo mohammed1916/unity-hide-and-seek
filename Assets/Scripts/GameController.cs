@@ -8,7 +8,7 @@ using UnityEngine;
 
 public class GameController : MonoBehaviour
 {
-    [SerializeField] private int episodeSteps = 240;
+    [SerializeField] private int episodeSteps = 1000;
     [SerializeField] private float gracePeriodFraction = 0.4f;
     [SerializeField] private float coneAngle = 0.375f * 180f;
 
