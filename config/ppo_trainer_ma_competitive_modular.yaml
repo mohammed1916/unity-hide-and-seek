@@ -2,14 +2,14 @@ behaviors:
   # === BASE PPO CONFIGURATION ===
   default_ppo: &default_ppo
     trainer_type: ppo
-    max_steps: 200000
-    time_horizon: 512 # from 2048
+    max_steps: 300000
+    time_horizon: 2048 # from 2048, 512
     summary_freq: 1
     keep_checkpoints: 1
     threaded: true
     hyperparameters:
-      batch_size: 512 # from 2048
-      buffer_size: 8192 # 40960
+      batch_size: 2048 # from 2048, 512
+      buffer_size: 40960 # 40960, 8192
       learning_rate: 0.001 # from  0.003
       learning_rate_schedule: linear
       beta: 0.01 # 0.005
@@ -24,7 +24,7 @@ behaviors:
       num_layers: 2
     reward_signals:
       extrinsic:
-        gamma: 0.8 # 0.99
+        gamma: 0.99 # 0.99, 0.8
         strength: 1.0
 
   # === TEMPLATE FOR HIDER TEAM ===
