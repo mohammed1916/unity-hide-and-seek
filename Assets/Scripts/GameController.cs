@@ -566,6 +566,7 @@ public class GameController : MonoBehaviour
         mapGenerator.Generate();
         hiders = hiderInstances.Take(mapGenerator.NumHiders).ToList();
         seekers = seekerInstances.Take(mapGenerator.NumSeekers).ToList();
+        boxes = mapGenerator.GetInstantiatedBoxes();
         foreach (AgentActions hider in hiders)
         {
             hider.ResetAgent();
