@@ -2,11 +2,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import glob
 
-# ----------------------------
-# Load CSVs
-# ----------------------------
+# Helper to read only rows with exact columns
 def read_csv_filtered(file_path, expected_cols):
-    """Read CSV and keep only rows with exactly expected_cols columns."""
     valid_rows = []
     with open(file_path, "r") as f:
         header = f.readline().strip().split(",")
@@ -14,76 +11,103 @@ def read_csv_filtered(file_path, expected_cols):
             parts = line.strip().split(",")
             if len(parts) == expected_cols:
                 valid_rows.append(parts)
-    # Convert to DataFrame
     df = pd.DataFrame(valid_rows, columns=header[:expected_cols])
-    # Convert numeric columns to float
     for col in df.columns:
         df[col] = pd.to_numeric(df[col], errors='coerce')
     return df
 
-# -----------------------------
-# Blocks (7 columns)
-# -----------------------------
-blocks_df = read_csv_filtered("trajectory_logs_/default_run/episode_3/blocks.csv", 7)
+# Load blocks (7 columns)
+blocks_df = read_csv_filtered("trajectory_logs_/default_run/episode_2/blocks.csv", 7)
 
-# -----------------------------
-# agent CSVs (5 columns)
-# -----------------------------
-import glob
-agent_files = glob.glob("trajectory_logs_/default_run/episode_3/agent_*.csv")
+# Load agents (5 columns)
+agent_files = glob.glob("trajectory_logs_/default_run/episode_2/agent_*.csv")
 agents = {}
 for file in agent_files:
     df = read_csv_filtered(file, 5)
     name = file.split("/")[-1].replace(".csv", "")
     agents[name] = df
 
-print("Blocks:", blocks_df.shape)
-for name, df in agents.items():
-    print(name, df.shape)
+# Unique timestamps
+timestamps = sorted(blocks_df['time'].unique())
 
-
-# ----------------------------
-# Create figure
-# ----------------------------
-fig = go.Figure()
-
-# Blocks as spheres
-for i, row in blocks_df.iterrows():
-    fig.add_trace(go.Scatter3d(
-        x=[row['x']],
-        y=[row['y']],
-        z=[row['z']],
+# Create frames
+frames = []
+for t in timestamps:
+    # Blocks positions at time t
+    blocks_t = blocks_df[blocks_df['time'] == t]
+    block_trace = go.Scatter3d(
+        x=blocks_t['x'], y=blocks_t['y'], z=blocks_t['z'],
         mode='markers',
-        marker=dict(size=8, color='brown'),
-        name=f"Block{row['block_id']}"
-    ))
+        marker=dict(size=5, color='brown'),
+        name='Blocks'
+    )
 
-# Agents as colored points
-colors = ['red', 'blue', 'green', 'orange', 'purple', 'cyan', 'magenta', 'yellow']
-for idx, (agent_name, df) in enumerate(agents.items()):
-    fig.add_trace(go.Scatter3d(
-        x=df['x'],
-        y=df['y'],
-        z=df['z'],
-        mode='lines+markers',
-        line=dict(color=colors[idx % len(colors)], width=3),
-        marker=dict(size=4),
-        name=agent_name
-    ))
+    # Agents positions at time t
+    agent_traces = []
+    for name, df in agents.items():
+        df_t = df[df['time'] == t]
+        agent_traces.append(
+            go.Scatter3d(
+                x=df_t['x'], y=df_t['y'], z=df_t['z'],
+                mode='markers',
+                marker=dict(size=5, color='blue' if "Hider" in name else 'red'),
+                name=name
+            )
+        )
 
-# ----------------------------
-# Layout
-# ----------------------------
+    frames.append(go.Frame(data=[block_trace] + agent_traces, name=str(t)))
+
+# Initial data (first timestamp)
+init_t = timestamps[0]
+init_blocks = blocks_df[blocks_df['time'] == init_t]
+init_block_trace = go.Scatter3d(
+    x=init_blocks['x'], y=init_blocks['y'], z=init_blocks['z'],
+    mode='markers', marker=dict(size=5, color='brown'), name='Blocks'
+)
+init_agent_traces = []
+for name, df in agents.items():
+    df_t = df[df['time'] == init_t]
+    init_agent_traces.append(
+        go.Scatter3d(
+            x=df_t['x'], y=df_t['y'], z=df_t['z'],
+            mode='markers',
+            marker=dict(size=5, color='blue' if "Hider" in name else 'red'),
+            name=name
+        )
+    )
+
+fig = go.Figure(
+    data=[init_block_trace] + init_agent_traces,
+    frames=frames
+)
+
+# Slider
+sliders = [dict(
+    steps=[dict(method='animate', label=str(t),
+                args=[[str(t)], dict(mode='immediate', frame=dict(duration=50, redraw=True), transition=dict(duration=0))])
+           for t in timestamps],
+    transition=dict(duration=0),
+    x=0, y=0, currentvalue=dict(font=dict(size=12), prefix="Time: ", visible=True),
+    len=1.0
+)]
+
 fig.update_layout(
-    scene=dict(
-        xaxis_title='X',
-        yaxis_title='Y',
-        zaxis_title='Z',
-        aspectmode='cube'
-    ),
-    title="Hide & Seek Trajectory Visualization",
-    width=900,
-    height=700
+    scene=dict(xaxis_title='X', yaxis_title='Y', zaxis_title='Z'),
+    width=800, height=600,
+    sliders=sliders,
+    updatemenus=[dict(type='buttons', showactive=False,
+                      y=1,
+                      x=0.8,
+                      xanchor='left',
+                      yanchor='bottom',
+                      pad=dict(t=45, r=10),
+                      buttons=[dict(label='Play',
+                                    method='animate',
+                                    args=[None, dict(frame=dict(duration=50, redraw=True), fromcurrent=True, mode='immediate')]),
+                               dict(label='Pause',
+                                    method='animate',
+                                    args=[[None], dict(frame=dict(duration=0, redraw=False), mode='immediate')])
+                               ])]
 )
 
 fig.show()
