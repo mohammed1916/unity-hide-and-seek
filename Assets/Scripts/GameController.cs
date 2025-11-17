@@ -5,6 +5,7 @@ using System.Linq;
 using Unity.Barracuda;
 using Unity.MLAgents;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class GameController : MonoBehaviour
 {
@@ -30,6 +31,8 @@ public class GameController : MonoBehaviour
     [SerializeField] private WinCondition winCondition = WinCondition.None;
     [SerializeField] private float winConditionRewardMultiplier = 1.0f;
     [SerializeField] private float arenaSize = 20f;
+
+    [SerializeField] private BoxHolding[] boxes;
     [SerializeField] private bool allowCapture = false;
     [SerializeField] private float captureDistance = 1.2f;
     [SerializeField] private int seekersCaptureGoal = 2;
@@ -120,6 +123,7 @@ public class GameController : MonoBehaviour
         mapGenerator.Initialize();
         hiderInstances = mapGenerator.GetInstantiatedHiders();
         seekerInstances = mapGenerator.GetInstantiatedSeekers();
+        boxes = mapGenerator.GetInstantiatedBoxes();
         hiderInstances.ForEach(hider => hider.GameController = this);
         seekerInstances.ForEach(seeker => seeker.GameController = this);
 
@@ -180,6 +184,23 @@ public class GameController : MonoBehaviour
         hidersMeanPosition /= hiders.Count;
         statsRecorder.Add("Environment/HidersMeanX", hidersMeanPosition.x);
         statsRecorder.Add("Environment/HidersMeanZ", hidersMeanPosition.z);
+
+        for (int i = 0; i < boxes.Length; i++)
+        {
+            if (boxes[i] == null) 
+            {
+                print("Box " + i + " is null, box reference is destroyed or missing");
+                continue;
+            }
+            Vector3 p = boxes[i].transform.position;
+
+            // Log each axis separately so they appear correctly in TensorBoard / CSV
+            statsRecorder.Add("Blocks/Block" + i + "_X", p.x, StatAggregationMethod.Average);
+            statsRecorder.Add("Blocks/Block" + i + "_Y", p.y, StatAggregationMethod.Average);
+            statsRecorder.Add("Blocks/Block" + i + "_Z", p.z, StatAggregationMethod.Average);
+            statsRecorder.Add("Blocks/Block" + i + "_IsLocked", boxes[i].LockOwner != null ? 1 : 0);
+            statsRecorder.Add("Blocks/Block" + i + "_IsHeld", boxes[i].Owner != null ? 1 : 0);
+        }
 
         UpdateRewards();
 

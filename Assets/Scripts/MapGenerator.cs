@@ -58,6 +58,11 @@ public class MapGenerator : MonoBehaviour
     public List<AgentActions> GetInstantiatedHiders() => hiders.ToList();
     public List<AgentActions> GetInstantiatedSeekers() => seekers.ToList();
 
+    public BoxHolding[] GetInstantiatedBoxes()
+    {
+        return boxes;
+    }
+
 
     private void Awake()
     {
