@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Unity.Barracuda;
 using Unity.MLAgents;
 using UnityEngine;
@@ -172,7 +173,7 @@ public class GameController : MonoBehaviour
         {
             seekersMeanPosition += seeker.transform.position - transform.position;
         }
-        seekersMeanPosition /= seekers.Count;
+        seekersMeanPosition /= Mathf.Max(1, seekers.Count);
         statsRecorder.Add("Environment/SeekersMeanX", seekersMeanPosition.x);
         statsRecorder.Add("Environment/SeekersMeanZ", seekersMeanPosition.z);
 
@@ -181,10 +182,11 @@ public class GameController : MonoBehaviour
         {
             hidersMeanPosition += hider.transform.position - transform.position;
         }
-        hidersMeanPosition /= hiders.Count;
+        hidersMeanPosition /= Mathf.Max(1, hiders.Count);
         statsRecorder.Add("Environment/HidersMeanX", hidersMeanPosition.x);
         statsRecorder.Add("Environment/HidersMeanZ", hidersMeanPosition.z);
 
+        // Log block positions (unchanged)
         for (int i = 0; i < boxes.Length; i++)
         {
             if (boxes[i] == null) 
@@ -201,6 +203,38 @@ public class GameController : MonoBehaviour
             statsRecorder.Add("Blocks/Block" + i + "_IsLocked", boxes[i].LockOwner != null ? 1 : 0);
             statsRecorder.Add("Blocks/Block" + i + "_IsHeld", boxes[i].Owner != null ? 1 : 0);
         }
+
+        // -----------------------
+        // NEW: Log agent positions + agent name in stat key
+        // -----------------------
+        // Hiders
+        for (int i = 0; i < hiders.Count; i++)
+        {
+            var agent = hiders[i];
+            if (agent == null) continue;
+            Vector3 p = agent.transform.position;
+            string nameSafe = SanitizeName(agent.gameObject.name);
+            string prefix = $"Agents/Hider_{i}_{nameSafe}";
+            statsRecorder.Add(prefix + "_X", p.x, StatAggregationMethod.Average);
+            statsRecorder.Add(prefix + "_Y", p.y, StatAggregationMethod.Average);
+            statsRecorder.Add(prefix + "_Z", p.z, StatAggregationMethod.Average);
+            statsRecorder.Add(prefix + "_IsActive", agent.gameObject.activeInHierarchy ? 1 : 0);
+        }
+
+        // Seekers
+        for (int i = 0; i < seekers.Count; i++)
+        {
+            var agent = seekers[i];
+            if (agent == null) continue;
+            Vector3 p = agent.transform.position;
+            string nameSafe = SanitizeName(agent.gameObject.name);
+            string prefix = $"Agents/Seeker_{i}_{nameSafe}";
+            statsRecorder.Add(prefix + "_X", p.x, StatAggregationMethod.Average);
+            statsRecorder.Add(prefix + "_Y", p.y, StatAggregationMethod.Average);
+            statsRecorder.Add(prefix + "_Z", p.z, StatAggregationMethod.Average);
+            statsRecorder.Add(prefix + "_IsActive", agent.gameObject.activeInHierarchy ? 1 : 0);
+        }
+        // -----------------------
 
         UpdateRewards();
 
@@ -531,5 +565,21 @@ public class GameController : MonoBehaviour
             Gizmos.DrawCube(center + new Vector3(0f, 1f, +arenaSize * 0.5f), new Vector3(arenaSize, 2f, 0.25f));
             Gizmos.color = c;
         }
+    }
+
+    /// <summary>
+    /// Replace any characters that could cause odd stat keys. Keep letters, digits, underscore and dash.
+    /// Collapses whitespace and removes other punctuation.
+    /// </summary>
+    private string SanitizeName(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return "unnamed";
+        // replace whitespace with underscore
+        string s = Regex.Replace(name, @"\s+", "_");
+        // keep letters, digits, underscore and dash only
+        s = Regex.Replace(s, @"[^A-Za-z0-9_\-]", "");
+        // safety: trim length
+        if (s.Length > 32) s = s.Substring(0, 32);
+        return s;
     }
 }
