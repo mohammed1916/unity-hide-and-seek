@@ -89,24 +89,109 @@ public class GameController : MonoBehaviour
     public bool DebugDrawBoxHold => debugDrawBoxHold;
     public bool DebugDrawIndividualReward => debugDrawIndividualReward;
 
+    // For CSV logging
+    private string runId;
+    private string basePath;
+    private string episodePath;
+    private Dictionary<string, StreamWriter> agentWriters = new();
+    private StreamWriter blockWriter;
+    private int episodeIndex = 0;
+
 
     private void Awake()
     {
-        // Ensure Unity keeps running even when the editor window loses focus.
-        // This prevents the environment from pausing when you switch to another app
-        // (helps avoid trainer worker restarts / hangs while training).
         Application.runInBackground = true;
+
+        // Read run-id from command-line
+        runId = "default_run";
+        string[] args = Environment.GetCommandLineArgs();
+        for (int i = 0; i < args.Length; i++)
+            if (args[i] == "--run-id" && i + 1 < args.Length)
+                runId = args[i + 1];
+
+        // Base folder using Directory.GetCurrentDirectory()
+        basePath = Path.Combine(Directory.GetCurrentDirectory(), "trajectory_logs_", runId);
+        Directory.CreateDirectory(basePath);
+
+        // Next episode folder (episodeIndex will be incremented on episode start)
+        StartNewEpisode();
 
         if (SystemArgs.GameParamsPath != null)
         {
-            Debug.Log("Game controller configuration file: " + SystemArgs.GameParamsPath);
-            string content = File.ReadAllText(SystemArgs.GameParamsPath);
-            JsonUtility.FromJsonOverwrite(content, this);
+            Debug.Log("Game configuration file: " + SystemArgs.GameParamsPath);
+            JsonUtility.FromJsonOverwrite(File.ReadAllText(SystemArgs.GameParamsPath), this);
         }
 
-        // Notify subscribers that a new episode has started
         EpisodeStarted?.Invoke();
     }
+
+    private void StartNewEpisode()
+    {
+        episodeIndex++;
+        episodePath = Path.Combine(basePath, $"episode_{episodeIndex}");
+        Directory.CreateDirectory(episodePath);
+
+        // Close previous writers
+        foreach (var w in agentWriters.Values) w.Close();
+        agentWriters.Clear();
+        blockWriter?.Close();
+
+        try
+        {
+            blockWriter = new StreamWriter(new FileStream(
+                Path.Combine(episodePath, "blocks.csv"),
+                FileMode.Create,          // overwrite existing file
+                FileAccess.Write,
+                FileShare.ReadWrite       // allow other readers/writers temporarily
+            ));
+            blockWriter.WriteLine("time,block_id,x,y,z,isLocked,isHeld");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to create block writer: {e.Message}");
+            blockWriter = null;
+        }
+    }
+    
+    private void LogBlock(int id, Vector3 p, float locked, float held)
+    {
+        blockWriter.WriteLine($"{Time.time:F4},Block{id},{p.x:F4},{p.y:F4},{p.z:F4},{locked},{held}");
+    }
+
+    private void LogAgent(string agentId, Vector3 p, float active)
+    {
+        if (!agentWriters.ContainsKey(agentId))
+        {
+            try
+            {
+                string file = Path.Combine(episodePath, $"agent_{agentId}.csv");
+                var writer = new StreamWriter(new FileStream(
+                    file,
+                    FileMode.Create,
+                    FileAccess.Write,
+                    FileShare.ReadWrite
+                ));
+                writer.WriteLine("time,x,y,z,isActive");
+                agentWriters.Add(agentId, writer);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to create agent writer for {agentId}: {e.Message}");
+                return;
+            }
+        }
+
+        try
+        {
+            agentWriters[agentId].WriteLine(
+                $"{Time.time:F4},{p.x:F4},{p.y:F4},{p.z:F4},{active}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to write to agent {agentId}: {e.Message}");
+        }
+    }
+
 
     private void Start()
     {
@@ -149,7 +234,7 @@ public class GameController : MonoBehaviour
         hidersGroup = new SimpleMultiAgentGroup();
         seekersGroup = new SimpleMultiAgentGroup();
 
-        holdObjects = FindObjectsOfType<BoxHolding>().ToList();
+        holdObjects = FindObjectsByType<BoxHolding>(FindObjectsSortMode.None).ToList();
 
         statsRecorder = Academy.Instance.StatsRecorder;
 
@@ -186,56 +271,167 @@ public class GameController : MonoBehaviour
         statsRecorder.Add("Environment/HidersMeanX", hidersMeanPosition.x);
         statsRecorder.Add("Environment/HidersMeanZ", hidersMeanPosition.z);
 
-        // Log block positions (unchanged)
-        for (int i = 0; i < boxes.Length; i++)
+        // // Log block positions (unchanged)
+        // for (int i = 0; i < boxes.Length; i++)
+        // {
+        //     if (boxes[i] == null) 
+        //     {
+        //         print("Box " + i + " is null, box reference is destroyed or missing");
+        //         continue;
+        //     }
+        //     Vector3 p = boxes[i].transform.position;
+
+        //     // Log each axis separately so they appear correctly in TensorBoard / CSV
+        //     statsRecorder.Add("Blocks/Block" + i + "_X", p.x, StatAggregationMethod.Average);
+        //     statsRecorder.Add("Blocks/Block" + i + "_Y", p.y, StatAggregationMethod.Average);
+        //     statsRecorder.Add("Blocks/Block" + i + "_Z", p.z, StatAggregationMethod.Average);
+        //     statsRecorder.Add("Blocks/Block" + i + "_IsLocked", boxes[i].LockOwner != null ? 1 : 0);
+        //     statsRecorder.Add("Blocks/Block" + i + "_IsHeld", boxes[i].Owner != null ? 1 : 0);
+        // }
+
+        // // -----------------------
+        // // Log agent positions + agent name in stat key
+        // // -----------------------
+        // // Hiders
+        // for (int i = 0; i < hiders.Count; i++)
+        // {
+        //     var agent = hiders[i];
+        //     if (agent == null) continue;
+        //     Vector3 p = agent.transform.position;
+        //     string nameSafe = SanitizeName(agent.gameObject.name);
+        //     string prefix = $"Agents/Hider_{i}_{nameSafe}";
+        //     statsRecorder.Add(prefix + "_X", p.x, StatAggregationMethod.Average);
+        //     statsRecorder.Add(prefix + "_Y", p.y, StatAggregationMethod.Average);
+        //     statsRecorder.Add(prefix + "_Z", p.z, StatAggregationMethod.Average);
+        //     statsRecorder.Add(prefix + "_IsActive", agent.gameObject.activeInHierarchy ? 1 : 0);
+        // }
+
+        // // Seekers
+        // for (int i = 0; i < seekers.Count; i++)
+        // {
+        //     var agent = seekers[i];
+        //     if (agent == null) continue;
+        //     Vector3 p = agent.transform.position;
+        //     string nameSafe = SanitizeName(agent.gameObject.name);
+        //     string prefix = $"Agents/Seeker_{i}_{nameSafe}";
+        //     statsRecorder.Add(prefix + "_X", p.x, StatAggregationMethod.Average);
+        //     statsRecorder.Add(prefix + "_Y", p.y, StatAggregationMethod.Average);
+        //     statsRecorder.Add(prefix + "_Z", p.z, StatAggregationMethod.Average);
+        //     statsRecorder.Add(prefix + "_IsActive", agent.gameObject.activeInHierarchy ? 1 : 0);
+        // }
+        // // -----------------------
+
+        // // -----------------------
+        // Dictionary<string, float> frame = new Dictionary<string, float>();
+
+        // // Blocks
+        // for (int i = 0; i < boxes.Length; i++)
+        // {
+        //     if (boxes[i] == null) continue;
+        //     Vector3 p = boxes[i].transform.position;
+        //     frame[$"Block{i}_X"] = p.x;
+        //     frame[$"Block{i}_Y"] = p.y;
+        //     frame[$"Block{i}_Z"] = p.z;
+        //     frame[$"Block{i}_IsLocked"] = boxes[i].LockOwner != null ? 1f : 0f;
+        //     frame[$"Block{i}_IsHeld"] = boxes[i].Owner != null ? 1f : 0f;
+        // }
+
+        // // Hiders
+        // for (int i = 0; i < hiders.Count; i++)
+        // {
+        //     var agent = hiders[i];
+        //     if (agent == null) continue;
+        //     Vector3 p = agent.transform.position;
+        //     string prefix = $"Hider{i}";
+        //     frame[$"{prefix}_X"] = p.x;
+        //     frame[$"{prefix}_Y"] = p.y;
+        //     frame[$"{prefix}_Z"] = p.z;
+        //     frame[$"{prefix}_IsActive"] = agent.gameObject.activeInHierarchy ? 1f : 0f;
+        // }
+
+        // // Seekers
+        // for (int i = 0; i < seekers.Count; i++)
+        // {
+        //     var agent = seekers[i];
+        //     if (agent == null) continue;
+        //     Vector3 p = agent.transform.position;
+        //     string prefix = $"Seeker{i}";
+        //     frame[$"{prefix}_X"] = p.x;
+        //     frame[$"{prefix}_Y"] = p.y;
+        //     frame[$"{prefix}_Z"] = p.z;
+        //     frame[$"{prefix}_IsActive"] = agent.gameObject.activeInHierarchy ? 1f : 0f;
+        // }
+
+        // // Commit this frame
+        // csvLogger.LogFrame(frame);
+
+        // // -----------------------
+
+        // -----------------------
+        // Log blocks
+        // -----------------------
+        if (boxes != null)
         {
-            if (boxes[i] == null) 
+            for (int i = 0; i < boxes.Length; i++)
             {
-                print("Box " + i + " is null, box reference is destroyed or missing");
-                continue;
+                if (boxes[i] == null) continue;
+                Vector3 p = boxes[i].transform.position;
+                LogBlock(i, p, boxes[i].LockOwner != null ? 1f : 0f, boxes[i].Owner != null ? 1f : 0f);
             }
-            Vector3 p = boxes[i].transform.position;
-
-            // Log each axis separately so they appear correctly in TensorBoard / CSV
-            statsRecorder.Add("Blocks/Block" + i + "_X", p.x, StatAggregationMethod.Average);
-            statsRecorder.Add("Blocks/Block" + i + "_Y", p.y, StatAggregationMethod.Average);
-            statsRecorder.Add("Blocks/Block" + i + "_Z", p.z, StatAggregationMethod.Average);
-            statsRecorder.Add("Blocks/Block" + i + "_IsLocked", boxes[i].LockOwner != null ? 1 : 0);
-            statsRecorder.Add("Blocks/Block" + i + "_IsHeld", boxes[i].Owner != null ? 1 : 0);
         }
 
         // -----------------------
-        // Log agent positions + agent name in stat key
+        // Log hiders
         // -----------------------
-        // Hiders
-        for (int i = 0; i < hiders.Count; i++)
+        if (hiders != null)
         {
-            var agent = hiders[i];
-            if (agent == null) continue;
-            Vector3 p = agent.transform.position;
-            string nameSafe = SanitizeName(agent.gameObject.name);
-            string prefix = $"Agents/Hider_{i}_{nameSafe}";
-            statsRecorder.Add(prefix + "_X", p.x, StatAggregationMethod.Average);
-            statsRecorder.Add(prefix + "_Y", p.y, StatAggregationMethod.Average);
-            statsRecorder.Add(prefix + "_Z", p.z, StatAggregationMethod.Average);
-            statsRecorder.Add(prefix + "_IsActive", agent.gameObject.activeInHierarchy ? 1 : 0);
+            for (int i = 0; i < hiders.Count; i++)
+            {
+                var agent = hiders[i];
+                if (agent == null) continue;
+                string agentId = $"Hider{i}_{SanitizeName(agent.gameObject.name)}";
+                LogAgent(agentId, agent.transform.position, agent.gameObject.activeInHierarchy ? 1f : 0f);
+            }
         }
 
-        // Seekers
-        for (int i = 0; i < seekers.Count; i++)
-        {
-            var agent = seekers[i];
-            if (agent == null) continue;
-            Vector3 p = agent.transform.position;
-            string nameSafe = SanitizeName(agent.gameObject.name);
-            string prefix = $"Agents/Seeker_{i}_{nameSafe}";
-            statsRecorder.Add(prefix + "_X", p.x, StatAggregationMethod.Average);
-            statsRecorder.Add(prefix + "_Y", p.y, StatAggregationMethod.Average);
-            statsRecorder.Add(prefix + "_Z", p.z, StatAggregationMethod.Average);
-            statsRecorder.Add(prefix + "_IsActive", agent.gameObject.activeInHierarchy ? 1 : 0);
-        }
         // -----------------------
+        // Log seekers
+        // -----------------------
+        if (seekers != null)
+        {
+            for (int i = 0; i < seekers.Count; i++)
+            {
+                var agent = seekers[i];
+                if (agent == null) continue;
+                string agentId = $"Seeker{i}_{SanitizeName(agent.gameObject.name)}";
+                LogAgent(agentId, agent.transform.position, agent.gameObject.activeInHierarchy ? 1f : 0f);
+            }
+        }
 
+        // -----------------------
+        // Flush writers to ensure data is written to disk
+        // -----------------------
+        try
+        {
+            blockWriter?.Flush();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Error flushing block writer: {e.Message}");
+        }
+        foreach (var w in agentWriters.Values)
+        {
+            try
+            {
+                w.Flush();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error flushing agent writer: {e.Message}");
+            }
+        }
+
+        // -----------------------
         UpdateRewards();
 
         if (episodeTimer >= episodeSteps)
@@ -444,6 +640,7 @@ public class GameController : MonoBehaviour
                 }
             }
         }
+        StartNewEpisode();
     }
 
 
@@ -581,5 +778,30 @@ public class GameController : MonoBehaviour
         // safety: trim length
         if (s.Length > 32) s = s.Substring(0, 32);
         return s;
+    }
+    private void OnApplicationQuit()
+    {
+        // Close all writers on application quit to ensure data is flushed
+        foreach (var w in agentWriters.Values)
+        {
+            try
+            {
+                w.Close();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Error closing agent writer: {e.Message}");
+            }
+        }
+        agentWriters.Clear();
+        
+        try
+        {
+            blockWriter?.Close();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Error closing block writer: {e.Message}");
+        }
     }
 }
