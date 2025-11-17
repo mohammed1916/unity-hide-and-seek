@@ -205,7 +205,7 @@ public class GameController : MonoBehaviour
         }
 
         // -----------------------
-        // NEW: Log agent positions + agent name in stat key
+        // Log agent positions + agent name in stat key
         // -----------------------
         // Hiders
         for (int i = 0; i < hiders.Count; i++)
