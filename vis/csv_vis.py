@@ -13,7 +13,8 @@ def read_csv_filtered(file_path, expected_cols):
                 valid_rows.append(parts)
     df = pd.DataFrame(valid_rows, columns=header[:expected_cols])
     for col in df.columns:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
+        if col != "block_id":  # keep block_id as string
+            df[col] = pd.to_numeric(df[col], errors='coerce')
     return df
 
 # Load blocks (7 columns)
@@ -33,22 +34,22 @@ timestamps = sorted(blocks_df['time'].unique())
 # Create frames
 frames = []
 for t in timestamps:
-    # Blocks positions at time t
+    # Blocks positions at time t (y = 1)
     blocks_t = blocks_df[blocks_df['time'] == t]
     block_trace = go.Scatter3d(
-        x=blocks_t['x'], y=blocks_t['y'], z=blocks_t['z'],
+        x=blocks_t['x'], y=[1]*len(blocks_t), z=blocks_t['z'],
         mode='markers',
         marker=dict(size=5, color='brown'),
         name='Blocks'
     )
 
-    # Agents positions at time t
+    # Agents positions at time t (y = 1)
     agent_traces = []
     for name, df in agents.items():
         df_t = df[df['time'] == t]
         agent_traces.append(
             go.Scatter3d(
-                x=df_t['x'], y=df_t['y'], z=df_t['z'],
+                x=df_t['x'], y=[1]*len(df_t), z=df_t['z'],
                 mode='markers',
                 marker=dict(size=5, color='blue' if "Hider" in name else 'red'),
                 name=name
@@ -61,7 +62,7 @@ for t in timestamps:
 init_t = timestamps[0]
 init_blocks = blocks_df[blocks_df['time'] == init_t]
 init_block_trace = go.Scatter3d(
-    x=init_blocks['x'], y=init_blocks['y'], z=init_blocks['z'],
+    x=init_blocks['x'], y=[1]*len(init_blocks), z=init_blocks['z'],
     mode='markers', marker=dict(size=5, color='brown'), name='Blocks'
 )
 init_agent_traces = []
@@ -69,7 +70,7 @@ for name, df in agents.items():
     df_t = df[df['time'] == init_t]
     init_agent_traces.append(
         go.Scatter3d(
-            x=df_t['x'], y=df_t['y'], z=df_t['z'],
+            x=df_t['x'], y=[1]*len(df_t), z=df_t['z'],
             mode='markers',
             marker=dict(size=5, color='blue' if "Hider" in name else 'red'),
             name=name
@@ -92,7 +93,11 @@ sliders = [dict(
 )]
 
 fig.update_layout(
-    scene=dict(xaxis_title='X', yaxis_title='Y', zaxis_title='Z'),
+    scene=dict(
+        xaxis_title='X',
+        yaxis_title='Y (fixed = 1)',
+        zaxis_title='Z'
+    ),
     width=800, height=600,
     sliders=sliders,
     updatemenus=[dict(type='buttons', showactive=False,
