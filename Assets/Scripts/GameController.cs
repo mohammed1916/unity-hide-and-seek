@@ -7,7 +7,7 @@ using Unity.Barracuda;
 using Unity.MLAgents;
 using UnityEngine;
 using UnityEngine.UIElements;
-using System.Globalization;
+// using System.Globalization;
 public class GameController : MonoBehaviour
 {
     [SerializeField] private int episodeSteps = 1000;
@@ -155,9 +155,11 @@ public class GameController : MonoBehaviour
     
     private void LogBlock(int id, Vector3 p, float locked, float held)
     {
-        blockWriter.WriteLine(string.Format(CultureInfo.InvariantCulture,
-        "{0:F4},Block{1},{2:F4},{3:F4},{4:F4},{5},{6}",
-        Time.time, id, p.x, p.y, p.z, locked, held));
+        // blockWriter.WriteLine(string.Format(CultureInfo.InvariantCulture,
+        // "{0:F4},Block{1},{2:F4},{3:F4},{4:F4},{5},{6}",
+        // Time.time, id, p.x, p.y, p.z, locked, held));
+        blockWriter.WriteLine($"{Time.time:F4},Block{id},{p.x:F4},{p.y:F4},{p.z:F4},{locked},{held}");
+
     }
 
     private void LogAgent(string agentId, Vector3 p, float active)
@@ -185,10 +187,12 @@ public class GameController : MonoBehaviour
 
         try
         {
-            agentWriters[agentId].WriteLine(
-                string.Format(CultureInfo.InvariantCulture,
-                "{0:F4},{1:F4},{2:F4},{3:F4},{4}",
-                Time.time, p.x, p.y, p.z, active));
+            // agentWriters[agentId].WriteLine(
+            //     string.Format(CultureInfo.InvariantCulture,
+            //     "{0:F4},{1:F4},{2:F4},{3:F4},{4}",
+            //     Time.time, p.x, p.y, p.z, active));
+            agentWriters[agentId].WriteLine($"{Time.time:F4},{p.x:F4},{p.y:F4},{p.z:F4},{active}");
+
         }
         catch (Exception e)
         {
