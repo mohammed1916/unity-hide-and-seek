@@ -18,15 +18,19 @@ def read_csv_filtered(file_path, expected_cols):
     return df
 
 # Load blocks (7 columns)
-blocks_df = read_csv_filtered("trajectory_logs_/default_run/episode_2/blocks.csv", 7)
+blocks_df = read_csv_filtered("trajectory_logs_/run41_2/episode_12/blocks.csv", 7)
 
 # Load agents (5 columns)
-agent_files = glob.glob("trajectory_logs_/default_run/episode_2/agent_*.csv")
+agent_files = glob.glob("trajectory_logs_/run41_2/episode_12/agent_*.csv")
 agents = {}
 for file in agent_files:
     df = read_csv_filtered(file, 5)
     name = file.split("/")[-1].replace(".csv", "")
     agents[name] = df
+
+blocks_df.dropna(inplace=True)
+for name in agents:
+    agents[name].dropna(inplace=True)
 
 # Unique timestamps
 timestamps = sorted(blocks_df['time'].unique())
@@ -76,6 +80,28 @@ for name, df in agents.items():
             name=name
         )
     )
+    
+# Precompute full paths for agents and blocks
+past_traces = []
+for name, df in agents.items():
+    past_traces.append(
+        go.Scatter3d(
+            x=df['x'], y=[1]*len(df), z=df['z'],
+            mode='lines',
+            line=dict(color='blue' if "Hider" in name else 'red', width=2),
+            name=f"{name}_path",
+            visible=False  # hidden by default
+        )
+    )
+
+# Blocks paths (optional)
+past_block_trace = go.Scatter3d(
+    x=blocks_df['x'], y=[1]*len(blocks_df), z=blocks_df['z'],
+    mode='lines',
+    line=dict(color='brown', width=2),
+    name='Blocks_path',
+    visible=False
+)
 
 fig = go.Figure(
     data=[init_block_trace] + init_agent_traces,
@@ -92,11 +118,13 @@ sliders = [dict(
     len=1.0
 )]
 
+fig.add_traces(past_traces )
+
 fig.update_layout(
     scene=dict(
-        xaxis_title='X',
-        yaxis_title='Y (fixed = 1)',
-        zaxis_title='Z'
+        xaxis=dict(title='X', range=[-20, 20]),
+        yaxis=dict(title='Y (fixed = 1)', range=[0.8, 2]),  
+        zaxis=dict(title='Z', range=[-20, 20]),
     ),
     width=800, height=600,
     sliders=sliders,
@@ -111,7 +139,15 @@ fig.update_layout(
                                     args=[None, dict(frame=dict(duration=50, redraw=True), fromcurrent=True, mode='immediate')]),
                                dict(label='Pause',
                                     method='animate',
-                                    args=[[None], dict(frame=dict(duration=0, redraw=False), mode='immediate')])
+                                    args=[[None], dict(frame=dict(duration=0, redraw=False), mode='immediate')]),
+                               dict(label='Show Past Positions',
+                                    method='update',
+                                    args=[{'visible': [True]*len(past_traces ) + [True]*len(init_agent_traces )},  
+                                        {'title': 'Past Positions'}]),
+                               dict(label='Hide Past Positions',
+                                    method='update',
+                                    args=[{'visible': [False]*len(past_traces + [past_block_trace]) + [False]*len(init_agent_traces + [init_block_trace])},  
+                                        {'title': 'No Past Positions'}]),
                                ])]
 )
 
