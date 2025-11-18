@@ -97,6 +97,9 @@ public class GameController : MonoBehaviour
     private StreamWriter blockWriter;
     private int episodeIndex = 0;
 
+    private bool shouldLogEpisode = false;
+    // private bool shouldLogEpisode = true;
+
 
     private void Awake()
     {
@@ -105,16 +108,22 @@ public class GameController : MonoBehaviour
         // Read run-id from command-line
         runId = "default_run";
         string[] args = Environment.GetCommandLineArgs();
-        for (int i = 0; i < args.Length; i++)
+        for (int i = 0; i < args.Length; i++){
             if (args[i] == "--run-id" && i + 1 < args.Length)
                 runId = args[i + 1];
+        }
+        print("runId: " + runId);
+        print("shouldLogEpisode: " + shouldLogEpisode);
 
         // Base folder using Directory.GetCurrentDirectory()
         basePath = Path.Combine(Directory.GetCurrentDirectory(), "trajectory_logs_", runId);
         Directory.CreateDirectory(basePath);
 
         // Next episode folder (episodeIndex will be incremented on episode start)
-        StartNewEpisode();
+        if (shouldLogEpisode)
+        {
+            StartNewEpisode();
+        }
 
         if (SystemArgs.GameParamsPath != null)
         {
@@ -374,71 +383,72 @@ public class GameController : MonoBehaviour
         // csvLogger.LogFrame(frame);
 
         // // -----------------------
-
-        // -----------------------
-        // Log blocks
-        // -----------------------
-        if (boxes != null)
-        {
-            for (int i = 0; i < boxes.Length; i++)
+        if (shouldLogEpisode)
+       { 
+            // -----------------------
+            // Log blocks
+            // -----------------------
+            if (boxes != null)
             {
-                if (boxes[i] == null) continue;
-                Vector3 p = boxes[i].transform.position;
-                LogBlock(i, p, boxes[i].LockOwner != null ? 1f : 0f, boxes[i].Owner != null ? 1f : 0f);
+                for (int i = 0; i < boxes.Length; i++)
+                {
+                    if (boxes[i] == null) continue;
+                    Vector3 p = boxes[i].transform.position;
+                    LogBlock(i, p, boxes[i].LockOwner != null ? 1f : 0f, boxes[i].Owner != null ? 1f : 0f);
+                }
             }
-        }
 
-        // -----------------------
-        // Log hiders
-        // -----------------------
-        if (hiders != null)
-        {
-            for (int i = 0; i < hiders.Count; i++)
+            // -----------------------
+            // Log hiders
+            // -----------------------
+            if (hiders != null)
             {
-                var agent = hiders[i];
-                if (agent == null) continue;
-                string agentId = $"Hider{i}_{SanitizeName(agent.gameObject.name)}";
-                LogAgent(agentId, agent.transform.position, agent.gameObject.activeInHierarchy ? 1f : 0f);
+                for (int i = 0; i < hiders.Count; i++)
+                {
+                    var agent = hiders[i];
+                    if (agent == null) continue;
+                    string agentId = $"Hider{i}_{SanitizeName(agent.gameObject.name)}";
+                    LogAgent(agentId, agent.transform.position, agent.gameObject.activeInHierarchy ? 1f : 0f);
+                }
             }
-        }
 
-        // -----------------------
-        // Log seekers
-        // -----------------------
-        if (seekers != null)
-        {
-            for (int i = 0; i < seekers.Count; i++)
+            // -----------------------
+            // Log seekers
+            // -----------------------
+            if (seekers != null)
             {
-                var agent = seekers[i];
-                if (agent == null) continue;
-                string agentId = $"Seeker{i}_{SanitizeName(agent.gameObject.name)}";
-                LogAgent(agentId, agent.transform.position, agent.gameObject.activeInHierarchy ? 1f : 0f);
+                for (int i = 0; i < seekers.Count; i++)
+                {
+                    var agent = seekers[i];
+                    if (agent == null) continue;
+                    string agentId = $"Seeker{i}_{SanitizeName(agent.gameObject.name)}";
+                    LogAgent(agentId, agent.transform.position, agent.gameObject.activeInHierarchy ? 1f : 0f);
+                }
             }
-        }
 
-        // -----------------------
-        // Flush writers to ensure data is written to disk
-        // -----------------------
-        try
-        {
-            blockWriter?.Flush();
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"Error flushing block writer: {e.Message}");
-        }
-        foreach (var w in agentWriters.Values)
-        {
+            // -----------------------
+            // Flush writers to ensure data is written to disk
+            // -----------------------
             try
             {
-                w.Flush();
+                blockWriter?.Flush();
             }
             catch (Exception e)
             {
-                Debug.LogError($"Error flushing agent writer: {e.Message}");
+                Debug.LogError($"Error flushing block writer: {e.Message}");
+            }
+            foreach (var w in agentWriters.Values)
+            {
+                try
+                {
+                    w.Flush();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"Error flushing agent writer: {e.Message}");
+                }
             }
         }
-
         // -----------------------
         UpdateRewards();
 
@@ -649,7 +659,10 @@ public class GameController : MonoBehaviour
                 }
             }
         }
-        StartNewEpisode();
+        if (shouldLogEpisode)
+        {
+            StartNewEpisode();
+        }
     }
 
 
