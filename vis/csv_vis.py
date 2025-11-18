@@ -18,10 +18,10 @@ def read_csv_filtered(file_path, expected_cols):
     return df
 
 # Load blocks (7 columns)
-blocks_df = read_csv_filtered("trajectory_logs_/run41_2/episode_12/blocks.csv", 7)
+blocks_df = read_csv_filtered("trajectory_logs_/run41/episode_12/blocks.csv", 7)
 
 # Load agents (5 columns)
-agent_files = glob.glob("trajectory_logs_/run41_2/episode_12/agent_*.csv")
+agent_files = glob.glob("trajectory_logs_/run41/episode_12/agent_*.csv")
 agents = {}
 for file in agent_files:
     df = read_csv_filtered(file, 5)
@@ -38,22 +38,26 @@ timestamps = sorted(blocks_df['time'].unique())
 # Create frames
 frames = []
 for t in timestamps:
-    # Blocks positions at time t (y = 1)
+    # Blocks positions at time t
     blocks_t = blocks_df[blocks_df['time'] == t]
     block_trace = go.Scatter3d(
-        x=blocks_t['x'], y=[1]*len(blocks_t), z=blocks_t['z'],
+        x=blocks_t['x'],
+        y=blocks_t['z'],  # Z as vertical
+        z=[1]*len(blocks_t),  # horizontal plane
         mode='markers',
         marker=dict(size=5, color='brown'),
         name='Blocks'
     )
 
-    # Agents positions at time t (y = 1)
+    # Agents positions at time t
     agent_traces = []
     for name, df in agents.items():
         df_t = df[df['time'] == t]
         agent_traces.append(
             go.Scatter3d(
-                x=df_t['x'], y=[1]*len(df_t), z=df_t['z'],
+                x=df_t['x'],
+                y=df_t['z'],  # vertical
+                z=[1]*len(df_t),  # horizontal plane
                 mode='markers',
                 marker=dict(size=5, color='blue' if "Hider" in name else 'red'),
                 name=name
@@ -66,37 +70,46 @@ for t in timestamps:
 init_t = timestamps[0]
 init_blocks = blocks_df[blocks_df['time'] == init_t]
 init_block_trace = go.Scatter3d(
-    x=init_blocks['x'], y=[1]*len(init_blocks), z=init_blocks['z'],
+    x=init_blocks['x'],
+    y=init_blocks['z'],  # vertical
+    z=[1]*len(init_blocks),
     mode='markers', marker=dict(size=5, color='brown'), name='Blocks'
 )
+
 init_agent_traces = []
 for name, df in agents.items():
     df_t = df[df['time'] == init_t]
     init_agent_traces.append(
         go.Scatter3d(
-            x=df_t['x'], y=[1]*len(df_t), z=df_t['z'],
+            x=df_t['x'],
+            y=df_t['z'],  # vertical
+            z=[1]*len(df_t),
             mode='markers',
             marker=dict(size=5, color='blue' if "Hider" in name else 'red'),
             name=name
         )
     )
-    
-# Precompute full paths for agents and blocks
+
+# Precompute full paths for agents
 past_traces = []
 for name, df in agents.items():
     past_traces.append(
         go.Scatter3d(
-            x=df['x'], y=[1]*len(df), z=df['z'],
+            x=df['x'],
+            y=df['z'],  # vertical
+            z=[1]*len(df),
             mode='lines',
             line=dict(color='blue' if "Hider" in name else 'red', width=2),
             name=f"{name}_path",
-            visible=False  # hidden by default
+            visible=False
         )
     )
 
-# Blocks paths (optional)
+# Blocks paths
 past_block_trace = go.Scatter3d(
-    x=blocks_df['x'], y=[1]*len(blocks_df), z=blocks_df['z'],
+    x=blocks_df['x'],
+    y=blocks_df['z'],  # vertical
+    z=[1]*len(blocks_df),
     mode='lines',
     line=dict(color='brown', width=2),
     name='Blocks_path',
@@ -118,15 +131,14 @@ sliders = [dict(
     len=1.0
 )]
 
-fig.add_traces(past_traces )
+fig.add_traces(past_traces + [past_block_trace])
 
 fig.update_layout(
     scene=dict(
         xaxis=dict(title='X', range=[-20, 20]),
-        yaxis=dict(title='Y (fixed = 1)', range=[0.8, 2]),  
-        zaxis=dict(title='Z', range=[-20, 20]),
+        yaxis=dict(title='Z (vertical)', range=[-20, 20]),  
+        zaxis=dict(title='Y (horizontal)', range=[0.8, 2]),
     ),
-    width=800, height=600,
     sliders=sliders,
     updatemenus=[dict(type='buttons', showactive=False,
                       y=1,
@@ -142,12 +154,12 @@ fig.update_layout(
                                     args=[[None], dict(frame=dict(duration=0, redraw=False), mode='immediate')]),
                                dict(label='Show Past Positions',
                                     method='update',
-                                    args=[{'visible': [True]*len(past_traces ) + [True]*len(init_agent_traces )},  
-                                        {'title': 'Past Positions'}]),
+                                    args=[{'visible': [True]*len(past_traces + [past_block_trace]) + [True]*len(init_agent_traces + [init_block_trace])},
+                                          {'title': 'Past Positions'}]),
                                dict(label='Hide Past Positions',
                                     method='update',
-                                    args=[{'visible': [False]*len(past_traces + [past_block_trace]) + [False]*len(init_agent_traces + [init_block_trace])},  
-                                        {'title': 'No Past Positions'}]),
+                                    args=[{'visible': [False]*len(past_traces + [past_block_trace]) + [False]*len(init_agent_traces + [init_block_trace])},
+                                          {'title': 'No Past Positions'}]),
                                ])]
 )
 
