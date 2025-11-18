@@ -2,7 +2,7 @@ behaviors:
   # === BASE PPO CONFIGURATION ===
   default_ppo: &default_ppo
     trainer_type: ppo
-    max_steps: 500000
+    max_steps: 600000
     time_horizon: 512 # from 2048, 512
     summary_freq: 1
     keep_checkpoints: 1
@@ -45,14 +45,14 @@ behaviors:
       beta_schedule: linear
       epsilon: 0.4 # 0.2
       epsilon_schedule: linear
-      lambd: 0.95
+      lambd: 0.8
       num_epoch: 10
     reward_signals:
       extrinsic:
         gamma: 0.8 # 0.99
         strength: 1.0
       curiosity:
-        strength: 0.02
+        strength: 0.2
         gamma: 0.8 # 0.99, 0.8
     network_settings:
       hidden_units: 256
@@ -76,14 +76,14 @@ behaviors:
       beta_schedule: linear
       epsilon: 0.4 # 0.2
       epsilon_schedule: linear
-      lambd: 0.95
+      lambd: 0.8
       num_epoch: 10
     reward_signals:
       extrinsic:
         gamma: 0.8
         strength: 1.0
       curiosity:
-        strength: 0.02
+        strength: 0.2
         gamma: 0.8
     network_settings:
       hidden_units: 256

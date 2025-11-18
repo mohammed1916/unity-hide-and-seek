@@ -18,10 +18,10 @@ def read_csv_filtered(file_path, expected_cols):
     return df
 
 # Load blocks (7 columns)
-blocks_df = read_csv_filtered("trajectory_logs_/run41/episode_12/blocks.csv", 7)
+blocks_df = read_csv_filtered("trajectory_logs_/run41/episode_5/blocks.csv", 7)
 
 # Load agents (5 columns)
-agent_files = glob.glob("trajectory_logs_/run41/episode_12/agent_*.csv")
+agent_files = glob.glob("trajectory_logs_/run41/episode_5/agent_*.csv")
 agents = {}
 for file in agent_files:
     df = read_csv_filtered(file, 5)
@@ -29,6 +29,7 @@ for file in agent_files:
     agents[name] = df
 
 blocks_df.dropna(inplace=True)
+blocks_df = blocks_df.drop_duplicates(subset=['time', 'block_id'])  # Remove duplicate block entries per timestamp
 for name in agents:
     agents[name].dropna(inplace=True)
 
@@ -38,8 +39,8 @@ timestamps = sorted(blocks_df['time'].unique())
 # Create frames
 frames = []
 for t in timestamps:
-    # Blocks positions at time t
-    blocks_t = blocks_df[blocks_df['time'] == t]
+    # Blocks positions at time t (deduplicate by block_id)
+    blocks_t = blocks_df[blocks_df['time'] == t].drop_duplicates(subset=['block_id'])
     block_trace = go.Scatter3d(
         x=blocks_t['x'],
         y=blocks_t['z'],  # Z as vertical
@@ -49,10 +50,10 @@ for t in timestamps:
         name='Blocks'
     )
 
-    # Agents positions at time t
+    # Agents positions at time t (already unique, but deduplicate just in case)
     agent_traces = []
     for name, df in agents.items():
-        df_t = df[df['time'] == t]
+        df_t = df[df['time'] == t].drop_duplicates(subset=['time'])  # assuming no other keys, but time is unique per agent
         agent_traces.append(
             go.Scatter3d(
                 x=df_t['x'],
@@ -68,7 +69,7 @@ for t in timestamps:
 
 # Initial data (first timestamp)
 init_t = timestamps[0]
-init_blocks = blocks_df[blocks_df['time'] == init_t]
+init_blocks = blocks_df[blocks_df['time'] == init_t].drop_duplicates(subset=['block_id'])
 init_block_trace = go.Scatter3d(
     x=init_blocks['x'],
     y=init_blocks['z'],  # vertical
@@ -78,7 +79,7 @@ init_block_trace = go.Scatter3d(
 
 init_agent_traces = []
 for name, df in agents.items():
-    df_t = df[df['time'] == init_t]
+    df_t = df[df['time'] == init_t].drop_duplicates(subset=['time'])
     init_agent_traces.append(
         go.Scatter3d(
             x=df_t['x'],
@@ -145,7 +146,7 @@ fig.update_layout(
                       x=0.8,
                       xanchor='left',
                       yanchor='bottom',
-                      pad=dict(t=45, r=10),
+                      pad=dict(t=50, r=10),
                       buttons=[dict(label='Play',
                                     method='animate',
                                     args=[None, dict(frame=dict(duration=50, redraw=True), fromcurrent=True, mode='immediate')]),
