@@ -479,8 +479,11 @@ public class GameController : MonoBehaviour
                             {
                                 if (rewardInfo.type == RewardInfo.Type.Capture)
                                 {
-                                    seekers[i].HideAndSeekAgent.AddReward(rewardInfo.weight);
-                                    hiders[j].HideAndSeekAgent.AddReward(-rewardInfo.weight);
+                                    float captureReward = rewardInfo.weight;
+                                    statsRecorder.Add($"Reward/Capture_Seeker{i}_Hider{j}", captureReward);
+                                    seekers[i].HideAndSeekAgent.AddReward(captureReward);
+                                    statsRecorder.Add($"Reward/Capture_Hider{j}_Seeker{i}", -captureReward);
+                                    hiders[j].HideAndSeekAgent.AddReward(-captureReward);
                                 }
                             }
 
@@ -730,6 +733,10 @@ public class GameController : MonoBehaviour
                         {
                             reward = 0f;
                         }
+                        if (reward != 0f)
+                        {
+                            statsRecorder.Add($"Reward/VisibilityIndividual_Hider{i}", reward);
+                        }
                         hiders[i].HideAndSeekAgent.AddReward(reward);
                     }
                     for (int i = 0; i < seekers.Count(); i++)
@@ -739,6 +746,10 @@ public class GameController : MonoBehaviour
                         {
                             reward = 0f;
                         }
+                        if (reward != 0f)
+                        {
+                            statsRecorder.Add($"Reward/VisibilityIndividual_Seeker{i}", reward);
+                        }
                         seekers[i].HideAndSeekAgent.AddReward(reward);
                     }
                     break;
@@ -746,6 +757,10 @@ public class GameController : MonoBehaviour
                 case RewardInfo.Type.VisibilityTeam:
                     if (!GracePeriodEnded) break;
                     float hidersReward = allHidden ? rewardInfo.weight : -rewardInfo.weight;
+                    if (hidersReward != 0f)
+                    {
+                        statsRecorder.Add("Reward/VisibilityTeam", hidersReward);
+                    }
                     hiders.ForEach((AgentActions hider) => hider.HideAndSeekAgent.AddReward(hidersReward));
                     seekers.ForEach((AgentActions seeker) => seeker.HideAndSeekAgent.AddReward(-hidersReward));
                     break;
@@ -753,11 +768,15 @@ public class GameController : MonoBehaviour
                 case RewardInfo.Type.OobPenalty:
                     foreach (AgentActions hider in hiders.Where((AgentActions agent) => IsOoB(agent)))
                     {
-                        hider.HideAndSeekAgent.AddReward(-rewardInfo.weight);
+                        float penalty = -rewardInfo.weight;
+                        statsRecorder.Add($"Reward/OobPenalty_Hider{hiders.IndexOf(hider)}", penalty);
+                        hider.HideAndSeekAgent.AddReward(penalty);
                     }
                     foreach (AgentActions seeker in seekers.Where((AgentActions agent) => IsOoB(agent)))
                     {
-                        seeker.HideAndSeekAgent.AddReward(-rewardInfo.weight);
+                        float penalty = -rewardInfo.weight;
+                        statsRecorder.Add($"Reward/OobPenalty_Seeker{seekers.IndexOf(seeker)}", penalty);
+                        seeker.HideAndSeekAgent.AddReward(penalty);
                     }
                     break;
             }

@@ -2,14 +2,14 @@ behaviors:
   # === BASE PPO CONFIGURATION ===
   default_ppo: &default_ppo
     trainer_type: ppo
-    max_steps: 600000
+    max_steps: 900000
     time_horizon: 512 # from 2048, 512
     summary_freq: 1
     keep_checkpoints: 1
     threaded: true
     hyperparameters:
       batch_size: 512 # from 2048, 512
-      buffer_size: 8192 # 40960, 8192
+      buffer_size: 40960 # 40960, 8192
       learning_rate: 0.001 # from  0.003
       learning_rate_schedule: linear
       beta: 0.01 # 0.005
@@ -24,7 +24,7 @@ behaviors:
       num_layers: 2
     reward_signals:
       extrinsic:
-        gamma: 0.8 # 0.99, 0.8
+        gamma: 0.99 # 0.99, 0.8
         strength: 1.0
 
   # === TEMPLATE FOR HIDER TEAM ===
@@ -38,7 +38,7 @@ behaviors:
       team_change: 1.0
     hyperparameters:
       batch_size: 512 # from 2048
-      buffer_size: 8192 # 40960
+      buffer_size: 40960 # 40960
       learning_rate: 0.001 # from  0.003
       learning_rate_schedule: linear
       beta: 0.01 # 0.005
@@ -50,10 +50,10 @@ behaviors:
     reward_signals:
       extrinsic:
         gamma: 0.8 # 0.99
-        strength: 1.0
+        strength: 0.1
       curiosity:
-        strength: 0.2
-        gamma: 0.8 # 0.99, 0.8
+        strength: 0.01
+        gamma: 0.99 # 0.99, 0.8
     network_settings:
       hidden_units: 256
       num_layers: 3
@@ -69,7 +69,7 @@ behaviors:
       team_change: 1.0
     hyperparameters:
       batch_size: 512 # from 2048
-      buffer_size: 8192 # 40960
+      buffer_size: 40960 # 40960
       learning_rate: 0.001 # from  0.003
       learning_rate_schedule: linear
       beta: 0.01 # 0.005
@@ -81,10 +81,10 @@ behaviors:
     reward_signals:
       extrinsic:
         gamma: 0.8
-        strength: 1.0
+        strength: 0.1
       curiosity:
-        strength: 0.2
-        gamma: 0.8
+        strength: 0.01
+        gamma: 0.99
     network_settings:
       hidden_units: 256
       num_layers: 3
