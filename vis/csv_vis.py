@@ -2,6 +2,9 @@ import pandas as pd
 import plotly.graph_objects as go
 import glob
 
+"""
+blocks must have 7 tuple, anything less or more is malformes, similaly agent should have 5 tuple,
+"""
 # Helper to read only rows with exact columns
 def read_csv_filtered(file_path, expected_cols):
     valid_rows = []
