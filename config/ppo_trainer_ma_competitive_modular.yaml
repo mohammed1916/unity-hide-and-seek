@@ -8,8 +8,8 @@ behaviors:
     keep_checkpoints: 1
     threaded: true
     hyperparameters:
-      batch_size: 1024 # from 2048, 512
-      buffer_size: 40960 # 40960, 8192
+      batch_size: 256 # from 2048, 512, 1024, 5120
+      buffer_size: 16384 # 40960, 8192, 40960
       learning_rate: 0.001 # from  0.003
       learning_rate_schedule: linear
       beta: 0.01 # 0.005
@@ -34,11 +34,11 @@ behaviors:
       window: 5
       play_against_latest_model_ratio: 0.5
       save_steps: 50000
-      swap_steps: 250
+      swap_steps: 320 # 64 × 5 = 320
       team_change: 1.0
     hyperparameters:
-      batch_size: 1024 # from 2048
-      buffer_size: 40960 # 40960
+      batch_size: 256 # from 2048
+      buffer_size: 16384 # 40960
       learning_rate: 0.001 # from  0.003
       learning_rate_schedule: linear
       beta: 0.01 # 0.005
@@ -65,11 +65,11 @@ behaviors:
       window: 5
       play_against_latest_model_ratio: 0.5
       save_steps: 50000
-      swap_steps: 250
+      swap_steps: 320
       team_change: 1.0
     hyperparameters:
-      batch_size: 1024 # from 2048
-      buffer_size: 40960 # 40960
+      batch_size: 256 # from 2048
+      buffer_size: 16384 # 40960
       learning_rate: 0.001 # from  0.003
       learning_rate_schedule: linear
       beta: 0.01 # 0.005
