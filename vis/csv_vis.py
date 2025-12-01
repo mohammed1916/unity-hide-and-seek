@@ -21,10 +21,10 @@ def read_csv_filtered(file_path, expected_cols):
     return df
 
 # Load blocks (7 columns)
-blocks_df = read_csv_filtered("trajectory_logs_/run41/episode_5/blocks.csv", 7)
+blocks_df = read_csv_filtered("trajectory_logs_/run41_5/episode_3/blocks.csv", 7)
 
 # Load agents (5 columns)
-agent_files = glob.glob("trajectory_logs_/run41/episode_5/agent_*.csv")
+agent_files = glob.glob("trajectory_logs_/run41_5/episode_3/agent_*.csv")
 agents = {}
 for file in agent_files:
     df = read_csv_filtered(file, 5)

@@ -2,7 +2,7 @@ behaviors:
   # === BASE PPO CONFIGURATION ===
   default_ppo: &default_ppo
     trainer_type: ppo
-    max_steps: 1300000
+    max_steps: 1400000
     time_horizon: 1024 # from 2048, 512
     summary_freq: 1
     keep_checkpoints: 1
