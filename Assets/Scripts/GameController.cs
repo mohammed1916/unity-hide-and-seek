@@ -26,6 +26,7 @@ public class GameController : MonoBehaviour
     };
 
     public enum WinCondition { None, LineOfSight, Capture };
+    public enum SuccessPerspective { Seekers, Hiders };
 
     [Header("Game Rules")]
     [SerializeField] private List<RewardInfo> rewards = null;
@@ -56,6 +57,9 @@ public class GameController : MonoBehaviour
     [SerializeField] private bool debugLogPlatformParams = true;
     [SerializeField] private bool debugLogMatchResult = false;
     [SerializeField] private bool debugLogCoplay = false;
+
+    [Header("Outcome")]
+    [SerializeField] private SuccessPerspective successPerspective = SuccessPerspective.Seekers;
 
 
     private int episodeTimer = 0;
@@ -95,10 +99,11 @@ public class GameController : MonoBehaviour
     private string episodePath;
     private Dictionary<string, StreamWriter> agentWriters = new();
     private StreamWriter blockWriter;
+    private StreamWriter episodeMetaWriter;
     private int episodeIndex = 0;
 
-    private bool shouldLogEpisode = false;
-    // private bool shouldLogEpisode = true;
+    // private bool shouldLogEpisode = false;
+    private bool shouldLogEpisode = true;
 
 
     private void Awake()
@@ -106,7 +111,8 @@ public class GameController : MonoBehaviour
         Application.runInBackground = true;
 
         // Read run-id from command-line
-        runId = "default_run";
+        // runId = "default_run";
+        runId = "run41_10";
         string[] args = Environment.GetCommandLineArgs();
         for (int i = 0; i < args.Length; i++){
             if (args[i] == "--run-id" && i + 1 < args.Length)
@@ -154,6 +160,22 @@ public class GameController : MonoBehaviour
                 FileShare.ReadWrite       // allow other readers/writers temporarily
             ));
             blockWriter.WriteLine("time,block_id,x,y,z,isLocked,isHeld");
+            // Episode meta file - contains a single line describing the episode
+            try
+            {
+                episodeMetaWriter = new StreamWriter(new FileStream(
+                    Path.Combine(episodePath, "episode_meta.csv"),
+                    FileMode.Create,
+                    FileAccess.Write,
+                    FileShare.ReadWrite
+                ));
+                episodeMetaWriter.WriteLine("episode_index,episode_steps,episode_duration_steps,episode_duration_seconds,outcome,outcome_seekers,outcome_hiders,winner,hidersCaptured,stepsHidden,timeHidden,hidersPerfectGame,gracePeriodEnded");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to create episode_meta writer: {e.Message}");
+                episodeMetaWriter = null;
+            }
         }
         catch (Exception e)
         {
@@ -564,6 +586,92 @@ public class GameController : MonoBehaviour
         // Notify subscribers before actually ending the group episodes (so cumulative rewards are still available)
         EpisodeEnded?.Invoke();
 
+        // Write the episode metadata summary into CSV (if logging enabled)
+        if (shouldLogEpisode && episodeMetaWriter != null)
+        {
+            // Determine winner and outcome
+            string winner = "None";
+            string outcome = "Timeout"; // default if time limited
+            bool timedOut = episodeTimer >= episodeSteps;
+            if (timedOut)
+            {
+                outcome = "Timeout";
+            }
+            else
+            {
+                // reuse the logic we used above to compute who won
+                bool hidersWon = false;
+                if (winCondition == WinCondition.LineOfSight && hidersPerfectGame)
+                {
+                    hidersWon = true;
+                }
+                if (winCondition == WinCondition.Capture && hidersCaptured < seekersCaptureGoal)
+                {
+                    hidersWon = true;
+                }
+                // Also if capture is allowed and all hiders captured -> seekers win
+                if (allowCapture && hidersCaptured == hiders.Count())
+                {
+                    hidersWon = false;
+                }
+
+                winner = hidersWon ? "Hiders" : "Seekers";
+            }
+
+            float durationSeconds = Time.fixedDeltaTime * (float)episodeTimer;
+            // recompute final per-team outcomes and use configured outcome as the legacy outcome column
+            string outcomeSeekersCol = "Timeout";
+            string outcomeHidersCol = "Timeout";
+            if (!timedOut)
+            {
+                outcomeSeekersCol = (winner == "Seekers") ? "Success" : "Failure";
+                outcomeHidersCol = (winner == "Hiders") ? "Success" : "Failure";
+            }
+            // compute configured outcome depending on successPerspective
+            switch (successPerspective)
+            {
+                case SuccessPerspective.Hiders:
+                    outcome = outcomeHidersCol;
+                    break;
+                case SuccessPerspective.Seekers:
+                default:
+                    outcome = outcomeSeekersCol;
+                    break;
+            }
+            string row = string.Format("{0},{1},{2},{3:F3},{4},{5},{6},{7},{8},{9},{10:F3},{11},{12}",
+                episodeIndex,
+                episodeSteps,
+                episodeTimer,
+                durationSeconds,
+                outcome,
+                outcomeSeekersCol,
+                outcomeHidersCol,
+                winner,
+                hidersCaptured,
+                stepsHidden,
+                (GracePeriodEnded ? (stepsHidden / Mathf.Ceil(episodeTimer - episodeSteps * gracePeriodFraction)) : 0.0f),
+                hidersPerfectGame,
+                GracePeriodEnded);
+            try
+            {
+                episodeMetaWriter.WriteLine(row);
+                episodeMetaWriter.Flush();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to write episode metadata: {e.Message}");
+            }
+            try
+            {
+                episodeMetaWriter?.Close();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to close episode meta writer: {e.Message}");
+            }
+            episodeMetaWriter = null;
+        }
+
         hidersGroup.EndGroupEpisode();
         seekersGroup.EndGroupEpisode();
         ResetScene();
@@ -843,6 +951,14 @@ public class GameController : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogError($"Error closing block writer: {e.Message}");
+        }
+        try
+        {
+            episodeMetaWriter?.Close();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Error closing episode meta writer: {e.Message}");
         }
     }
 }

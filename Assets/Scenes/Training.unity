@@ -132,6 +132,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: Platform (random 3v3) (2)
       objectReference: {fileID: 0}
+    - target: {fileID: 8857862129424821074, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
+        type: 3}
+      propertyPath: episodeSteps
+      value: 1000
+      objectReference: {fileID: 0}
     - target: {fileID: 8857862129424821075, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
       propertyPath: m_RootOrder
@@ -190,12 +195,12 @@ PrefabInstance:
     - target: {fileID: 8857862129424821076, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
       propertyPath: numBoxesMax
-      value: 40
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 8857862129424821076, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
       propertyPath: numBoxesMin
-      value: 20
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -214,6 +219,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Platform (random 3v3) (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 8857862129424821074, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
+        type: 3}
+      propertyPath: episodeSteps
+      value: 1000
       objectReference: {fileID: 0}
     - target: {fileID: 8857862129424821075, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
@@ -273,12 +283,12 @@ PrefabInstance:
     - target: {fileID: 8857862129424821076, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
       propertyPath: numBoxesMax
-      value: 40
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 8857862129424821076, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
       propertyPath: numBoxesMin
-      value: 20
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -435,6 +445,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: Platform (random 3v3) (3)
       objectReference: {fileID: 0}
+    - target: {fileID: 8857862129424821074, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
+        type: 3}
+      propertyPath: episodeSteps
+      value: 1000
+      objectReference: {fileID: 0}
     - target: {fileID: 8857862129424821075, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
       propertyPath: m_RootOrder
@@ -493,12 +508,12 @@ PrefabInstance:
     - target: {fileID: 8857862129424821076, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
       propertyPath: numBoxesMax
-      value: 40
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 8857862129424821076, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
       propertyPath: numBoxesMin
-      value: 20
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -517,6 +532,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Platform (random 3v3) (4)
+      objectReference: {fileID: 0}
+    - target: {fileID: 8857862129424821074, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
+        type: 3}
+      propertyPath: episodeSteps
+      value: 1000
       objectReference: {fileID: 0}
     - target: {fileID: 8857862129424821075, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
@@ -576,12 +596,12 @@ PrefabInstance:
     - target: {fileID: 8857862129424821076, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
       propertyPath: numBoxesMax
-      value: 40
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 8857862129424821076, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
       propertyPath: numBoxesMin
-      value: 20
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -600,6 +620,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Platform (random 3v3) (6)
+      objectReference: {fileID: 0}
+    - target: {fileID: 8857862129424821074, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
+        type: 3}
+      propertyPath: episodeSteps
+      value: 1000
       objectReference: {fileID: 0}
     - target: {fileID: 8857862129424821075, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
@@ -659,12 +684,12 @@ PrefabInstance:
     - target: {fileID: 8857862129424821076, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
       propertyPath: numBoxesMax
-      value: 40
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 8857862129424821076, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
       propertyPath: numBoxesMin
-      value: 20
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -683,6 +708,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Platform (random 3v3) (5)
+      objectReference: {fileID: 0}
+    - target: {fileID: 8857862129424821074, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
+        type: 3}
+      propertyPath: episodeSteps
+      value: 1000
       objectReference: {fileID: 0}
     - target: {fileID: 8857862129424821075, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
@@ -742,12 +772,12 @@ PrefabInstance:
     - target: {fileID: 8857862129424821076, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
       propertyPath: numBoxesMax
-      value: 40
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 8857862129424821076, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
       propertyPath: numBoxesMin
-      value: 20
+      value: 3
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

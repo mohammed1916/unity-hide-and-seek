@@ -6,6 +6,59 @@ The visualisatoin is based on this repo [mohammed1916/eval_ppo](https://github.c
 mlagents-learn config/ppo_trainer_ma_competitive.yaml --run-id=run40 --env-args game_params=config/predator_prey_v1/game_params.json arena_params=config/predator_prey_v1/arena_params.json
 ```
 
+---
+
+
+
+Episode Outcome Analysis
+
+This repository includes a Unity `GameController` that logs per-episode metadata (if logging enabled) into `trajectory_logs_<runId>/episode_<N>/episode_meta.csv`.
+
+We added a script `analyze_episode_outcomes.py` to gather these metadata files, create basic statistical summaries, and produce charts.
+
+Requirements:
+
+- Python 3.8+
+- pip install pandas matplotlib
+
+Installation and usage:
+
+1. Install requirements:
+
+```bash
+pip install pandas matplotlib
+```
+
+2. Run analysis (point `--run-path` at your run folder or workspace root):
+
+```bash
+python analyze_episode_outcomes.py --run-path "./trajectory_logs_default_run" --out "analysis_output"
+```
+
+If you pass the workspace root, the script will search for `trajectory_logs_*` folders and aggregate all episodes.
+
+Outputs:
+
+- `analysis_output/episode_summary.csv` - merged metadata
+- `analysis_output/outcome_counts.png`
+- `analysis_output/winner_counts.png`
+- `analysis_output/time_hidden_per_episode.png`
+- `analysis_output/episode_duration_hist.png`
+
+Notes:
+
+- The script expects `episode_meta.csv` files (created by `GameController`) in `trajectory_logs_<runId>/episode_<N>/`.
+- The GameController logs `outcome` values as `Success`, `Failure`, or `Timeout` and `winner` as `Hiders` or `Seekers`.
+- The GameController logs `outcome` values as `Success`, `Failure`, or `Timeout` and `winner` as `Hiders` or `Seekers`.
+  - By default, `outcome` is computed relative to `Seekers` (i.e., `Success` means Seekers won). You can configure which team should be considered the "success" team with the `successPerspective` field in the `GameController` inspector (options: `Seekers` or `Hiders`).
+  - In addition to the configured `outcome` column, the per-team outcomes are also provided as `outcome_seekers` and `outcome_hiders` to facilitate analysis across both perspectives.
+
+
+---
+
+
+
+
 
 ![screencap](/screencap/screencap1_360p.gif)
 
