@@ -45,6 +45,7 @@ Outputs:
 - `analysis_output/time_hidden_per_episode.png`
 - `analysis_output/episode_duration_hist.png`
 
+- `trajectory_logs_<runId>/combine.csv` - optional run-level combined CSV containing rows from per-episode metadata
 Notes:
 
 - The script expects `episode_meta.csv` files (created by `GameController`) in `trajectory_logs_<runId>/episode_<N>/`.

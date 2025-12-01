@@ -10,7 +10,7 @@ using UnityEngine.UIElements;
 // using System.Globalization;
 public class GameController : MonoBehaviour
 {
-    [SerializeField] private int episodeSteps = 1000;
+    [SerializeField] private int episodeSteps = 5000;
     [SerializeField] private float gracePeriodFraction = 0.4f;
     [SerializeField] private float coneAngle = 0.375f * 180f;
 
@@ -100,6 +100,7 @@ public class GameController : MonoBehaviour
     private Dictionary<string, StreamWriter> agentWriters = new();
     private StreamWriter blockWriter;
     private StreamWriter episodeMetaWriter;
+    private StreamWriter combineWriter;
     private int episodeIndex = 0;
 
     // private bool shouldLogEpisode = false;
@@ -112,7 +113,7 @@ public class GameController : MonoBehaviour
 
         // Read run-id from command-line
         // runId = "default_run";
-        runId = "run41_10";
+        runId = "run41_10_5000_steps";
         string[] args = Environment.GetCommandLineArgs();
         for (int i = 0; i < args.Length; i++){
             if (args[i] == "--run-id" && i + 1 < args.Length)
@@ -124,6 +125,32 @@ public class GameController : MonoBehaviour
         // Base folder using Directory.GetCurrentDirectory()
         basePath = Path.Combine(Directory.GetCurrentDirectory(), "trajectory_logs_", runId);
         Directory.CreateDirectory(basePath);
+
+        // Create or open combined CSV file in run root
+        if (shouldLogEpisode)
+        {
+            try
+            {
+                string combineFile = Path.Combine(basePath, "combine.csv");
+                bool writeHeader = !File.Exists(combineFile);
+                combineWriter = new StreamWriter(new FileStream(
+                    combineFile,
+                    FileMode.Append,
+                    FileAccess.Write,
+                    FileShare.ReadWrite
+                ));
+                if (writeHeader)
+                {
+                    combineWriter.WriteLine("episode_index,episode_steps,episode_duration_steps,episode_duration_seconds,outcome,outcome_seekers,outcome_hiders,winner,hidersCaptured,stepsHidden,timeHidden,hidersPerfectGame,gracePeriodEnded");
+                    combineWriter.Flush();
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to create/open combine CSV: {e.Message}");
+                combineWriter = null;
+            }
+        }
 
         // Next episode folder (episodeIndex will be incremented on episode start)
         if (shouldLogEpisode)
@@ -586,72 +613,71 @@ public class GameController : MonoBehaviour
         // Notify subscribers before actually ending the group episodes (so cumulative rewards are still available)
         EpisodeEnded?.Invoke();
 
-        // Write the episode metadata summary into CSV (if logging enabled)
+        // Prepare episode metadata summary (row) for both episode_meta and combine
+        string winner = "None";
+        string outcome = "Timeout"; // default if time limited
+        bool timedOut = episodeTimer >= episodeSteps;
+        if (timedOut)
+        {
+            outcome = "Timeout";
+        }
+        else
+        {
+            // reuse the logic we used above to compute who won
+            bool hidersWon = false;
+            if (winCondition == WinCondition.LineOfSight && hidersPerfectGame)
+            {
+                hidersWon = true;
+            }
+            if (winCondition == WinCondition.Capture && hidersCaptured < seekersCaptureGoal)
+            {
+                hidersWon = true;
+            }
+            // Also if capture is allowed and all hiders captured -> seekers win
+            if (allowCapture && hidersCaptured == hiders.Count())
+            {
+                hidersWon = false;
+            }
+            winner = hidersWon ? "Hiders" : "Seekers";
+        }
+
+        float durationSeconds = Time.fixedDeltaTime * (float)episodeTimer;
+        // recompute final per-team outcomes and use configured outcome as the legacy outcome column
+        string outcomeSeekersCol = "Timeout";
+        string outcomeHidersCol = "Timeout";
+        if (!timedOut)
+        {
+            outcomeSeekersCol = (winner == "Seekers") ? "Success" : "Failure";
+            outcomeHidersCol = (winner == "Hiders") ? "Success" : "Failure";
+        }
+        // compute configured outcome depending on successPerspective
+        switch (successPerspective)
+        {
+            case SuccessPerspective.Hiders:
+                outcome = outcomeHidersCol;
+                break;
+            case SuccessPerspective.Seekers:
+            default:
+                outcome = outcomeSeekersCol;
+                break;
+        }
+        string row = string.Format("{0},{1},{2},{3:F3},{4},{5},{6},{7},{8},{9},{10:F3},{11},{12}",
+            episodeIndex,
+            episodeSteps,
+            episodeTimer,
+            durationSeconds,
+            outcome,
+            outcomeSeekersCol,
+            outcomeHidersCol,
+            winner,
+            hidersCaptured,
+            stepsHidden,
+            (GracePeriodEnded ? (stepsHidden / Mathf.Ceil(episodeTimer - episodeSteps * gracePeriodFraction)) : 0.0f),
+            hidersPerfectGame,
+            GracePeriodEnded);
+
         if (shouldLogEpisode && episodeMetaWriter != null)
         {
-            // Determine winner and outcome
-            string winner = "None";
-            string outcome = "Timeout"; // default if time limited
-            bool timedOut = episodeTimer >= episodeSteps;
-            if (timedOut)
-            {
-                outcome = "Timeout";
-            }
-            else
-            {
-                // reuse the logic we used above to compute who won
-                bool hidersWon = false;
-                if (winCondition == WinCondition.LineOfSight && hidersPerfectGame)
-                {
-                    hidersWon = true;
-                }
-                if (winCondition == WinCondition.Capture && hidersCaptured < seekersCaptureGoal)
-                {
-                    hidersWon = true;
-                }
-                // Also if capture is allowed and all hiders captured -> seekers win
-                if (allowCapture && hidersCaptured == hiders.Count())
-                {
-                    hidersWon = false;
-                }
-
-                winner = hidersWon ? "Hiders" : "Seekers";
-            }
-
-            float durationSeconds = Time.fixedDeltaTime * (float)episodeTimer;
-            // recompute final per-team outcomes and use configured outcome as the legacy outcome column
-            string outcomeSeekersCol = "Timeout";
-            string outcomeHidersCol = "Timeout";
-            if (!timedOut)
-            {
-                outcomeSeekersCol = (winner == "Seekers") ? "Success" : "Failure";
-                outcomeHidersCol = (winner == "Hiders") ? "Success" : "Failure";
-            }
-            // compute configured outcome depending on successPerspective
-            switch (successPerspective)
-            {
-                case SuccessPerspective.Hiders:
-                    outcome = outcomeHidersCol;
-                    break;
-                case SuccessPerspective.Seekers:
-                default:
-                    outcome = outcomeSeekersCol;
-                    break;
-            }
-            string row = string.Format("{0},{1},{2},{3:F3},{4},{5},{6},{7},{8},{9},{10:F3},{11},{12}",
-                episodeIndex,
-                episodeSteps,
-                episodeTimer,
-                durationSeconds,
-                outcome,
-                outcomeSeekersCol,
-                outcomeHidersCol,
-                winner,
-                hidersCaptured,
-                stepsHidden,
-                (GracePeriodEnded ? (stepsHidden / Mathf.Ceil(episodeTimer - episodeSteps * gracePeriodFraction)) : 0.0f),
-                hidersPerfectGame,
-                GracePeriodEnded);
             try
             {
                 episodeMetaWriter.WriteLine(row);
@@ -670,6 +696,20 @@ public class GameController : MonoBehaviour
                 Debug.LogError($"Failed to close episode meta writer: {e.Message}");
             }
             episodeMetaWriter = null;
+        }
+
+        // Also append the row into combined CSV (run-level)
+        if (shouldLogEpisode && combineWriter != null)
+        {
+            try
+            {
+                combineWriter.WriteLine(row);
+                combineWriter.Flush();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Failed to append to combine CSV: {e.Message}");
+            }
         }
 
         hidersGroup.EndGroupEpisode();
@@ -959,6 +999,14 @@ public class GameController : MonoBehaviour
         catch (Exception e)
         {
             Debug.LogError($"Error closing episode meta writer: {e.Message}");
+        }
+        try
+        {
+            combineWriter?.Close();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Error closing combine writer: {e.Message}");
         }
     }
 }

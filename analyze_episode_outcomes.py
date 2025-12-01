@@ -24,6 +24,20 @@ import matplotlib.pyplot as plt
 def find_episode_meta_files(run_path):
     # run_path may be a specific run folder, or a workspace root.
     results = []
+    # If a `combine.csv` exists at the run folder, prefer that
+    combine = os.path.join(run_path, 'combine.csv')
+    if os.path.exists(combine):
+        return [combine]
+
+    # If run_path is a workspace root, check for combine files in trajectory_log folders
+    if os.path.isdir(run_path):
+        # pattern like workspace/trajectory_logs_* /combine.csv
+        for d in glob.glob(os.path.join(run_path, 'trajectory_logs_*')):
+            c = os.path.join(d, 'combine.csv')
+            if os.path.exists(c):
+                results.append(c)
+        if results:
+            return sorted(results)
     if os.path.exists(os.path.join(run_path, 'episode_0')) or os.path.exists(run_path):
         search_pattern = os.path.join(run_path, 'episode_*', 'episode_meta.csv')
     else:
@@ -39,12 +53,14 @@ def read_metadata(files):
     for f in files:
         try:
             df = pd.read_csv(f)
-            # Assume each file has a single header and one row
             if not df.empty:
-                rows.append(df.iloc[0])
+                # If file contains multiple rows (e.g., combine.csv), add all
+                for _, r in df.iterrows():
+                    rows.append(r)
         except Exception as e:
             print(f"Failed to read {f}: {e}")
     if rows:
+        # rows may be a list of Series or dict-like rows; normalize to DataFrame
         return pd.DataFrame(rows)
     else:
         return pd.DataFrame()
@@ -147,6 +163,15 @@ def summarize_and_plot(df, out_dir):
         plt.ylabel('Count')
         plt.tight_layout()
         plt.savefig(os.path.join(out_dir, 'episode_duration_hist.png'))
+        plt.close()
+    if 'stepsHidden' in df.columns:
+        plt.figure(figsize=(6,4))
+        df['stepsHidden'].hist(bins=30, orientation='horizontal')
+        plt.title('Steps Hidden Histogram')
+        plt.xlabel('Steps Hidden')
+        plt.ylabel('Count')
+        plt.tight_layout()
+        plt.savefig(os.path.join(out_dir, 'steps_hidden_hist.png'))
         plt.close()
 
     # Save summary CSV
