@@ -135,7 +135,7 @@ PrefabInstance:
     - target: {fileID: 8857862129424821074, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
       propertyPath: episodeSteps
-      value: 1000
+      value: 5000
       objectReference: {fileID: 0}
     - target: {fileID: 8857862129424821075, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
@@ -223,7 +223,7 @@ PrefabInstance:
     - target: {fileID: 8857862129424821074, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
       propertyPath: episodeSteps
-      value: 1000
+      value: 5000
       objectReference: {fileID: 0}
     - target: {fileID: 8857862129424821075, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
@@ -448,7 +448,7 @@ PrefabInstance:
     - target: {fileID: 8857862129424821074, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
       propertyPath: episodeSteps
-      value: 1000
+      value: 5000
       objectReference: {fileID: 0}
     - target: {fileID: 8857862129424821075, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
@@ -536,7 +536,7 @@ PrefabInstance:
     - target: {fileID: 8857862129424821074, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
       propertyPath: episodeSteps
-      value: 1000
+      value: 5000
       objectReference: {fileID: 0}
     - target: {fileID: 8857862129424821075, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
@@ -624,7 +624,7 @@ PrefabInstance:
     - target: {fileID: 8857862129424821074, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
       propertyPath: episodeSteps
-      value: 1000
+      value: 5000
       objectReference: {fileID: 0}
     - target: {fileID: 8857862129424821075, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
@@ -712,7 +712,7 @@ PrefabInstance:
     - target: {fileID: 8857862129424821074, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}
       propertyPath: episodeSteps
-      value: 1000
+      value: 5000
       objectReference: {fileID: 0}
     - target: {fileID: 8857862129424821075, guid: a46f3f5bcc5ccdd4b91b907c12db70e4,
         type: 3}

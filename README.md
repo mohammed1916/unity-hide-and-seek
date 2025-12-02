@@ -46,6 +46,40 @@ Outputs:
 - `analysis_output/episode_duration_hist.png`
 
 - `trajectory_logs_<runId>/combine.csv` - optional run-level combined CSV containing rows from per-episode metadata
+
+TensorBoard Event Support
+-------------------------
+If you wish to include TensorBoard logs in your analysis and comparisons, install the `tensorboard` Python package:
+
+```bash
+pip install tensorboard
+```
+
+Then, add the `--include-tensorboard` flag when comparing runs.
+
+Comparison & Regression Detection
+--------------------------------
+You can compare two runs or auto-compare the latest two runs using `analyze_episode_outcomes.py`.
+
+Examples:
+
+- Compare two specific runs:
+```bash
+python analyze_episode_outcomes.py --run-path . --runs "trajectory_logs_/run40" "trajectory_logs_/run41_10" --out "comparison_output"
+```
+
+- Auto-compare the latest two runs under the workspace (searches `trajectory_logs_*`):
+```bash
+python analyze_episode_outcomes.py --run-path . --auto-compare --out "comparison_output"
+```
+
+The script will generate comparison charts and a `compare_summary.csv` with statistical summaries. It compares:
+- Cumulative reward proxy: `timeHidden` (higher is better for Hiders)
+- Episode length: `episode_duration_seconds`
+- Win/loss ratio: `outcome`, `outcome_seekers`, and `outcome_hiders` cumulative success ratios
+TensorBoard (TF events) analysis
+--------------------------------
+If TensorBoard event files are present (usually under `results/<run_id>/`), the script can also compare scalars from the TF event files using `--include-tensorboard`. Optionally pass `--tb-tags` to specify a subset of scalar tags. See the CLI part for examples.
 Notes:
 
 - The script expects `episode_meta.csv` files (created by `GameController`) in `trajectory_logs_<runId>/episode_<N>/`.
