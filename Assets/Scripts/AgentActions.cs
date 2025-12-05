@@ -45,7 +45,7 @@ public class AgentActions : MonoBehaviour
         }
 
         // After movement is applied, push a per-step record to the TrajectoryLogger (if present).
-        TrajectoryLogger.Instance?.RecordAgentStep(gameObject.GetInstanceID(), transform.position);
+        // TrajectoryLogger.Instance?.RecordAgentStep(gameObject.GetInstanceID(), transform.position);
 
         movementInput = Vector2.zero;
         rotationInput = 0f;

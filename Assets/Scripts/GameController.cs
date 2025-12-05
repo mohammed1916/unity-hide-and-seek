@@ -8,6 +8,7 @@ using Unity.MLAgents;
 using UnityEngine;
 using UnityEngine.UIElements;
 // using System.Globalization;
+using TrajectoryLogging;
 public class GameController : MonoBehaviour
 {
     [SerializeField] private int episodeSteps = 5000;
@@ -90,17 +91,21 @@ public class GameController : MonoBehaviour
         get { return episodeTimer >= episodeSteps * gracePeriodFraction; }
     }
 
+    public float timeHidden
+    {
+        get
+        {
+            if (!GracePeriodEnded) return 0.0f;
+            return (float)stepsHidden / Mathf.Ceil(episodeTimer - episodeSteps * gracePeriodFraction);
+        }
+    }
+
     public bool DebugDrawBoxHold => debugDrawBoxHold;
     public bool DebugDrawIndividualReward => debugDrawIndividualReward;
 
-    // For CSV logging
+    // For CSV logging (moved into EpisodeLogger)
     private string runId;
-    private string basePath;
-    private string episodePath;
-    private Dictionary<string, StreamWriter> agentWriters = new();
-    private StreamWriter blockWriter;
-    private StreamWriter episodeMetaWriter;
-    private StreamWriter combineWriter;
+    private EpisodeLogger episodeLogger = new EpisodeLogger();
     private int episodeIndex = 0;
 
     // private bool shouldLogEpisode = false;
@@ -111,11 +116,11 @@ public class GameController : MonoBehaviour
     {
         Application.runInBackground = true;
 
-        // Read run-id from command-line
-        // runId = "default_run";
+        // Read run-id from command-line (default)
         runId = "run41_10_5000_steps";
         string[] args = Environment.GetCommandLineArgs();
-        for (int i = 0; i < args.Length; i++){
+        for (int i = 0; i < args.Length; i++)
+        {
             if (args[i] == "--run-id" && i + 1 < args.Length)
                 runId = args[i + 1];
         }
@@ -123,39 +128,12 @@ public class GameController : MonoBehaviour
         print("shouldLogEpisode: " + shouldLogEpisode);
 
         // Base folder using Directory.GetCurrentDirectory()
-        basePath = Path.Combine(Directory.GetCurrentDirectory(), "trajectory_logs_", runId);
-        Directory.CreateDirectory(basePath);
+        string basePath = Path.Combine(Directory.GetCurrentDirectory(), "trajectory_logs_", runId);
 
-        // Create or open combined CSV file in run root
         if (shouldLogEpisode)
         {
-            try
-            {
-                string combineFile = Path.Combine(basePath, "combine.csv");
-                bool writeHeader = !File.Exists(combineFile);
-                combineWriter = new StreamWriter(new FileStream(
-                    combineFile,
-                    FileMode.Append,
-                    FileAccess.Write,
-                    FileShare.ReadWrite
-                ));
-                if (writeHeader)
-                {
-                    combineWriter.WriteLine("episode_index,episode_steps,episode_duration_steps,episode_duration_seconds,outcome,outcome_seekers,outcome_hiders,winner,hidersCaptured,stepsHidden,timeHidden,hidersPerfectGame,gracePeriodEnded");
-                    combineWriter.Flush();
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to create/open combine CSV: {e.Message}");
-                combineWriter = null;
-            }
-        }
-
-        // Next episode folder (episodeIndex will be incremented on episode start)
-        if (shouldLogEpisode)
-        {
-            StartNewEpisode();
+            episodeLogger.Init(basePath);
+            episodeLogger.StartNewEpisode();
         }
 
         if (SystemArgs.GameParamsPath != null)
@@ -165,97 +143,6 @@ public class GameController : MonoBehaviour
         }
 
         EpisodeStarted?.Invoke();
-    }
-
-    private void StartNewEpisode()
-    {
-        episodeIndex++;
-        episodePath = Path.Combine(basePath, $"episode_{episodeIndex}");
-        Directory.CreateDirectory(episodePath);
-
-        // Close previous writers
-        foreach (var w in agentWriters.Values) w.Close();
-        agentWriters.Clear();
-        blockWriter?.Close();
-
-        try
-        {
-            blockWriter = new StreamWriter(new FileStream(
-                Path.Combine(episodePath, "blocks.csv"),
-                FileMode.Create,          // overwrite existing file
-                FileAccess.Write,
-                FileShare.ReadWrite       // allow other readers/writers temporarily
-            ));
-            blockWriter.WriteLine("time,block_id,x,y,z,isLocked,isHeld");
-            // Episode meta file - contains a single line describing the episode
-            try
-            {
-                episodeMetaWriter = new StreamWriter(new FileStream(
-                    Path.Combine(episodePath, "episode_meta.csv"),
-                    FileMode.Create,
-                    FileAccess.Write,
-                    FileShare.ReadWrite
-                ));
-                episodeMetaWriter.WriteLine("episode_index,episode_steps,episode_duration_steps,episode_duration_seconds,outcome,outcome_seekers,outcome_hiders,winner,hidersCaptured,stepsHidden,timeHidden,hidersPerfectGame,gracePeriodEnded");
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to create episode_meta writer: {e.Message}");
-                episodeMetaWriter = null;
-            }
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"Failed to create block writer: {e.Message}");
-            blockWriter = null;
-        }
-    }
-    
-    private void LogBlock(int id, Vector3 p, float locked, float held)
-    {
-        // blockWriter.WriteLine(string.Format(CultureInfo.InvariantCulture,
-        // "{0:F4},Block{1},{2:F4},{3:F4},{4:F4},{5},{6}",
-        // Time.time, id, p.x, p.y, p.z, locked, held));
-        blockWriter.WriteLine($"{Time.time:F4},Block{id},{p.x:F4},{p.y:F4},{p.z:F4},{locked},{held}");
-
-    }
-
-    private void LogAgent(string agentId, Vector3 p, float active)
-    {
-        if (!agentWriters.ContainsKey(agentId))
-        {
-            try
-            {
-                string file = Path.Combine(episodePath, $"agent_{agentId}.csv");
-                var writer = new StreamWriter(new FileStream(
-                    file,
-                    FileMode.Create,
-                    FileAccess.Write,
-                    FileShare.ReadWrite
-                ));
-                writer.WriteLine("time,x,y,z,isActive");
-                agentWriters.Add(agentId, writer);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to create agent writer for {agentId}: {e.Message}");
-                return;
-            }
-        }
-
-        try
-        {
-            // agentWriters[agentId].WriteLine(
-            //     string.Format(CultureInfo.InvariantCulture,
-            //     "{0:F4},{1:F4},{2:F4},{3:F4},{4}",
-            //     Time.time, p.x, p.y, p.z, active));
-            agentWriters[agentId].WriteLine($"{Time.time:F4},{p.x:F4},{p.y:F4},{p.z:F4},{active}");
-
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"Failed to write to agent {agentId}: {e.Message}");
-        }
     }
 
 
@@ -337,101 +224,6 @@ public class GameController : MonoBehaviour
         statsRecorder.Add("Environment/HidersMeanX", hidersMeanPosition.x);
         statsRecorder.Add("Environment/HidersMeanZ", hidersMeanPosition.z);
 
-        // // Log block positions (unchanged)
-        // for (int i = 0; i < boxes.Length; i++)
-        // {
-        //     if (boxes[i] == null) 
-        //     {
-        //         print("Box " + i + " is null, box reference is destroyed or missing");
-        //         continue;
-        //     }
-        //     Vector3 p = boxes[i].transform.position;
-
-        //     // Log each axis separately so they appear correctly in TensorBoard / CSV
-        //     statsRecorder.Add("Blocks/Block" + i + "_X", p.x, StatAggregationMethod.Average);
-        //     statsRecorder.Add("Blocks/Block" + i + "_Y", p.y, StatAggregationMethod.Average);
-        //     statsRecorder.Add("Blocks/Block" + i + "_Z", p.z, StatAggregationMethod.Average);
-        //     statsRecorder.Add("Blocks/Block" + i + "_IsLocked", boxes[i].LockOwner != null ? 1 : 0);
-        //     statsRecorder.Add("Blocks/Block" + i + "_IsHeld", boxes[i].Owner != null ? 1 : 0);
-        // }
-
-        // // -----------------------
-        // // Log agent positions + agent name in stat key
-        // // -----------------------
-        // // Hiders
-        // for (int i = 0; i < hiders.Count; i++)
-        // {
-        //     var agent = hiders[i];
-        //     if (agent == null) continue;
-        //     Vector3 p = agent.transform.position;
-        //     string nameSafe = SanitizeName(agent.gameObject.name);
-        //     string prefix = $"Agents/Hider_{i}_{nameSafe}";
-        //     statsRecorder.Add(prefix + "_X", p.x, StatAggregationMethod.Average);
-        //     statsRecorder.Add(prefix + "_Y", p.y, StatAggregationMethod.Average);
-        //     statsRecorder.Add(prefix + "_Z", p.z, StatAggregationMethod.Average);
-        //     statsRecorder.Add(prefix + "_IsActive", agent.gameObject.activeInHierarchy ? 1 : 0);
-        // }
-
-        // // Seekers
-        // for (int i = 0; i < seekers.Count; i++)
-        // {
-        //     var agent = seekers[i];
-        //     if (agent == null) continue;
-        //     Vector3 p = agent.transform.position;
-        //     string nameSafe = SanitizeName(agent.gameObject.name);
-        //     string prefix = $"Agents/Seeker_{i}_{nameSafe}";
-        //     statsRecorder.Add(prefix + "_X", p.x, StatAggregationMethod.Average);
-        //     statsRecorder.Add(prefix + "_Y", p.y, StatAggregationMethod.Average);
-        //     statsRecorder.Add(prefix + "_Z", p.z, StatAggregationMethod.Average);
-        //     statsRecorder.Add(prefix + "_IsActive", agent.gameObject.activeInHierarchy ? 1 : 0);
-        // }
-        // // -----------------------
-
-        // // -----------------------
-        // Dictionary<string, float> frame = new Dictionary<string, float>();
-
-        // // Blocks
-        // for (int i = 0; i < boxes.Length; i++)
-        // {
-        //     if (boxes[i] == null) continue;
-        //     Vector3 p = boxes[i].transform.position;
-        //     frame[$"Block{i}_X"] = p.x;
-        //     frame[$"Block{i}_Y"] = p.y;
-        //     frame[$"Block{i}_Z"] = p.z;
-        //     frame[$"Block{i}_IsLocked"] = boxes[i].LockOwner != null ? 1f : 0f;
-        //     frame[$"Block{i}_IsHeld"] = boxes[i].Owner != null ? 1f : 0f;
-        // }
-
-        // // Hiders
-        // for (int i = 0; i < hiders.Count; i++)
-        // {
-        //     var agent = hiders[i];
-        //     if (agent == null) continue;
-        //     Vector3 p = agent.transform.position;
-        //     string prefix = $"Hider{i}";
-        //     frame[$"{prefix}_X"] = p.x;
-        //     frame[$"{prefix}_Y"] = p.y;
-        //     frame[$"{prefix}_Z"] = p.z;
-        //     frame[$"{prefix}_IsActive"] = agent.gameObject.activeInHierarchy ? 1f : 0f;
-        // }
-
-        // // Seekers
-        // for (int i = 0; i < seekers.Count; i++)
-        // {
-        //     var agent = seekers[i];
-        //     if (agent == null) continue;
-        //     Vector3 p = agent.transform.position;
-        //     string prefix = $"Seeker{i}";
-        //     frame[$"{prefix}_X"] = p.x;
-        //     frame[$"{prefix}_Y"] = p.y;
-        //     frame[$"{prefix}_Z"] = p.z;
-        //     frame[$"{prefix}_IsActive"] = agent.gameObject.activeInHierarchy ? 1f : 0f;
-        // }
-
-        // // Commit this frame
-        // csvLogger.LogFrame(frame);
-
-        // // -----------------------
         if (shouldLogEpisode)
        { 
             // -----------------------
@@ -443,7 +235,7 @@ public class GameController : MonoBehaviour
                 {
                     if (boxes[i] == null) continue;
                     Vector3 p = boxes[i].transform.position;
-                    LogBlock(i, p, boxes[i].LockOwner != null ? 1f : 0f, boxes[i].Owner != null ? 1f : 0f);
+                    episodeLogger.LogBlock(i, p, boxes[i].LockOwner != null ? 1f : 0f, boxes[i].Owner != null ? 1f : 0f);
                 }
             }
 
@@ -457,7 +249,7 @@ public class GameController : MonoBehaviour
                     var agent = hiders[i];
                     if (agent == null) continue;
                     string agentId = $"Hider{i}_{SanitizeName(agent.gameObject.name)}";
-                    LogAgent(agentId, agent.transform.position, agent.gameObject.activeInHierarchy ? 1f : 0f);
+                    episodeLogger.LogAgent(agentId, agent.transform.position, agent.gameObject.activeInHierarchy ? 1f : 0f);
                 }
             }
 
@@ -471,7 +263,7 @@ public class GameController : MonoBehaviour
                     var agent = seekers[i];
                     if (agent == null) continue;
                     string agentId = $"Seeker{i}_{SanitizeName(agent.gameObject.name)}";
-                    LogAgent(agentId, agent.transform.position, agent.gameObject.activeInHierarchy ? 1f : 0f);
+                    episodeLogger.LogAgent(agentId, agent.transform.position, agent.gameObject.activeInHierarchy ? 1f : 0f);
                 }
             }
 
@@ -480,22 +272,11 @@ public class GameController : MonoBehaviour
             // -----------------------
             try
             {
-                blockWriter?.Flush();
+                episodeLogger.FlushWriters();
             }
             catch (Exception e)
             {
-                Debug.LogError($"Error flushing block writer: {e.Message}");
-            }
-            foreach (var w in agentWriters.Values)
-            {
-                try
-                {
-                    w.Flush();
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"Error flushing agent writer: {e.Message}");
-                }
+                Debug.LogError($"Error flushing episode writers: {e.Message}");
             }
         }
         // -----------------------
@@ -571,7 +352,7 @@ public class GameController : MonoBehaviour
 
     private void EndEpisode()
     {
-        float timeHidden = GracePeriodEnded ? stepsHidden / Mathf.Ceil(episodeTimer - episodeSteps * gracePeriodFraction) : 0.0f;
+        
         statsRecorder.Add("Environment/TimeHidden", timeHidden);
 
         if (allowCapture)
@@ -613,7 +394,7 @@ public class GameController : MonoBehaviour
         // Notify subscribers before actually ending the group episodes (so cumulative rewards are still available)
         EpisodeEnded?.Invoke();
 
-        // Prepare episode metadata summary (row) for both episode_meta and combine
+        // Prepare episode metadata summary and delegate writing to EpisodeLogger
         string winner = "None";
         string outcome = "Timeout"; // default if time limited
         bool timedOut = episodeTimer >= episodeSteps;
@@ -623,26 +404,14 @@ public class GameController : MonoBehaviour
         }
         else
         {
-            // reuse the logic we used above to compute who won
             bool hidersWon = false;
-            if (winCondition == WinCondition.LineOfSight && hidersPerfectGame)
-            {
-                hidersWon = true;
-            }
-            if (winCondition == WinCondition.Capture && hidersCaptured < seekersCaptureGoal)
-            {
-                hidersWon = true;
-            }
-            // Also if capture is allowed and all hiders captured -> seekers win
-            if (allowCapture && hidersCaptured == hiders.Count())
-            {
-                hidersWon = false;
-            }
+            if (winCondition == WinCondition.LineOfSight && hidersPerfectGame) hidersWon = true;
+            if (winCondition == WinCondition.Capture && hidersCaptured < seekersCaptureGoal) hidersWon = true;
+            if (allowCapture && hidersCaptured == hiders.Count()) hidersWon = false;
             winner = hidersWon ? "Hiders" : "Seekers";
         }
 
         float durationSeconds = Time.fixedDeltaTime * (float)episodeTimer;
-        // recompute final per-team outcomes and use configured outcome as the legacy outcome column
         string outcomeSeekersCol = "Timeout";
         string outcomeHidersCol = "Timeout";
         if (!timedOut)
@@ -650,7 +419,6 @@ public class GameController : MonoBehaviour
             outcomeSeekersCol = (winner == "Seekers") ? "Success" : "Failure";
             outcomeHidersCol = (winner == "Hiders") ? "Success" : "Failure";
         }
-        // compute configured outcome depending on successPerspective
         switch (successPerspective)
         {
             case SuccessPerspective.Hiders:
@@ -661,54 +429,16 @@ public class GameController : MonoBehaviour
                 outcome = outcomeSeekersCol;
                 break;
         }
-        string row = string.Format("{0},{1},{2},{3:F3},{4},{5},{6},{7},{8},{9},{10:F3},{11},{12}",
-            episodeIndex,
-            episodeSteps,
-            episodeTimer,
-            durationSeconds,
-            outcome,
-            outcomeSeekersCol,
-            outcomeHidersCol,
-            winner,
-            hidersCaptured,
-            stepsHidden,
-            (GracePeriodEnded ? (stepsHidden / Mathf.Ceil(episodeTimer - episodeSteps * gracePeriodFraction)) : 0.0f),
-            hidersPerfectGame,
-            GracePeriodEnded);
 
-        if (shouldLogEpisode && episodeMetaWriter != null)
+        if (shouldLogEpisode)
         {
             try
             {
-                episodeMetaWriter.WriteLine(row);
-                episodeMetaWriter.Flush();
+                episodeLogger.WriteEpisodeSummary(episodeSteps, episodeTimer, durationSeconds, outcome, outcomeSeekersCol, outcomeHidersCol, winner, hidersCaptured, stepsHidden, timeHidden, hidersPerfectGame, GracePeriodEnded);
             }
             catch (Exception e)
             {
-                Debug.LogError($"Failed to write episode metadata: {e.Message}");
-            }
-            try
-            {
-                episodeMetaWriter?.Close();
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to close episode meta writer: {e.Message}");
-            }
-            episodeMetaWriter = null;
-        }
-
-        // Also append the row into combined CSV (run-level)
-        if (shouldLogEpisode && combineWriter != null)
-        {
-            try
-            {
-                combineWriter.WriteLine(row);
-                combineWriter.Flush();
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to append to combine CSV: {e.Message}");
+                Debug.LogError($"Failed to write episode summary via EpisodeLogger: {e.Message}");
             }
         }
 
@@ -810,9 +540,9 @@ public class GameController : MonoBehaviour
                 }
             }
         }
-        if (shouldLogEpisode)
-        {
-            StartNewEpisode();
+        if (shouldLogEpisode)   
+        {   
+            episodeIndex = episodeLogger.StartNewEpisode();
         }
     }
 
@@ -970,43 +700,14 @@ public class GameController : MonoBehaviour
     }
     private void OnApplicationQuit()
     {
-        // Close all writers on application quit to ensure data is flushed
-        foreach (var w in agentWriters.Values)
-        {
-            try
-            {
-                w.Close();
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Error closing agent writer: {e.Message}");
-            }
-        }
-        agentWriters.Clear();
-        
+        // Delegate closure to EpisodeLogger
         try
         {
-            blockWriter?.Close();
+            episodeLogger.Close();
         }
         catch (Exception e)
         {
-            Debug.LogError($"Error closing block writer: {e.Message}");
-        }
-        try
-        {
-            episodeMetaWriter?.Close();
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"Error closing episode meta writer: {e.Message}");
-        }
-        try
-        {
-            combineWriter?.Close();
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"Error closing combine writer: {e.Message}");
+            Debug.LogError($"Error closing EpisodeLogger: {e.Message}");
         }
     }
 }
