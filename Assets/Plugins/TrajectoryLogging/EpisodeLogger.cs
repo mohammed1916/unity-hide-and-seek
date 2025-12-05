@@ -29,6 +29,11 @@ namespace TrajectoryLogging
         private StreamWriter eventsWriter;
         private Dictionary<string, StreamWriter> agentWriters = new Dictionary<string, StreamWriter>();
         private int episodeIndex = 0;
+        // push-style custom metrics collected from anywhere in the code
+        private Dictionary<string, float> _customMetrics = new Dictionary<string, float>();
+
+        // optional pull-style provider for metrics computed at summary time
+        public Func<Dictionary<string, float>> MetricProvider { get; set; }
 
         public bool Initialized { get; private set; } = false;
 
@@ -227,6 +232,69 @@ namespace TrajectoryLogging
             {
                 Debug.LogWarning($"EpisodeLogger: failed to push summary stats: {e.Message}");
             }
+
+            // Write any custom metrics (push-style via AddMetric or pull-style via MetricProvider)
+            try
+            {
+                var metricsToWrite = new Dictionary<string, float>();
+                if (MetricProvider != null)
+                {
+                    try
+                    {
+                        var provided = MetricProvider.Invoke();
+                        if (provided != null)
+                        {
+                            foreach (var kv in provided) metricsToWrite[kv.Key] = kv.Value;
+                        }
+                    }
+                    catch (Exception) { }
+                }
+
+                foreach (var kv in _customMetrics) metricsToWrite[kv.Key] = kv.Value;
+
+                if (metricsToWrite.Count > 0)
+                {
+                    string metricsFile = Path.Combine(episodePath, "episode_metrics.csv");
+                    try
+                    {
+                        using (var mw = new StreamWriter(new FileStream(metricsFile, FileMode.Create, FileAccess.Write, FileShare.ReadWrite)))
+                        {
+                            mw.WriteLine("metric_name,value");
+                            foreach (var kv in metricsToWrite)
+                            {
+                                mw.WriteLine($"{kv.Key},{kv.Value}");
+                            }
+                            mw.Flush();
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogWarning($"EpisodeLogger: failed to write custom metrics file: {e.Message}");
+                    }
+
+                    if (reportToStats)
+                    {
+                        try
+                        {
+                            var stats = Academy.Instance.StatsRecorder;
+                            foreach (var kv in metricsToWrite)
+                            {
+                                try { stats.Add($"Custom/{kv.Key}", kv.Value); } catch { }
+                            }
+                        }
+                        catch { }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"EpisodeLogger: failed to write/push custom metrics: {e.Message}");
+            }
+            finally
+            {
+                // clear push-style metrics after writing
+                try { _customMetrics.Clear(); } catch { }
+            }
         }
 
         public void FlushWriters()
@@ -269,6 +337,27 @@ namespace TrajectoryLogging
                 }
                 catch { }
             }
+        }
+
+        /// <summary>
+        /// Push-style API to add a custom metric from anywhere prior to calling WriteEpisodeSummary().
+        /// Metrics added via AddMetric will be written to episode_metrics.csv and (optionally) pushed to StatsRecorder.
+        /// </summary>
+        public void AddMetric(string name, float value)
+        {
+            try
+            {
+                _customMetrics[name] = value;
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// Clear any previously added push-style custom metrics.
+        /// </summary>
+        public void ClearMetrics()
+        {
+            try { _customMetrics.Clear(); } catch { }
         }
     }
 }
