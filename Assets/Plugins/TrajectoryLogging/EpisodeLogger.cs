@@ -134,6 +134,12 @@ namespace TrajectoryLogging
                 LogEvent("BlockPlaced", 1f);
             }
             catch { }
+            // also increment a custom metric counter for blocks placed (push-style)
+            try
+            {
+                AddMetricIncrement("Blocks/Placed", 1f);
+            }
+            catch { }
         }
 
         public void LogAgent(string agentId, Vector3 p, float active)
@@ -358,6 +364,19 @@ namespace TrajectoryLogging
         public void ClearMetrics()
         {
             try { _customMetrics.Clear(); } catch { }
+        }
+
+        /// <summary>
+        /// Increment (accumulate) a named metric by delta. Useful for counters like number of blocks placed.
+        /// </summary>
+        public void AddMetricIncrement(string name, float delta)
+        {
+            try
+            {
+                if (_customMetrics.ContainsKey(name)) _customMetrics[name] += delta;
+                else _customMetrics[name] = delta;
+            }
+            catch { }
         }
     }
 }

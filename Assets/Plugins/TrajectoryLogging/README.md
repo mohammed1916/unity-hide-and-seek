@@ -110,7 +110,7 @@ Custom metrics
 You can record custom per-episode metrics in two ways: push-style (from anywhere during the episode) and pull-style (provide a function that computes metrics at summary time).
 
 - Push-style API (recommended when multiple systems add metrics):
-
+ - Push-style API (recommended when multiple systems add metrics):
 ```csharp
 // anywhere in your code
 episodeLogger.AddMetric("my/custom_metric", 12.34f);
@@ -135,6 +135,10 @@ You can also clear push-style metrics manually with:
 ```csharp
 episodeLogger.ClearMetrics();
 ```
+
+Automatic block counter
+-----------------------
+`LogBlock(...)` now increments a push-style counter `Blocks/Placed` automatically. This will appear in `episode_metrics.csv` and (if `reportToStats` is enabled) in TensorBoard under `Custom/Blocks/Placed`.
 
 Visualization workflow
 ----------------------
