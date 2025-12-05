@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using UnityEngine;
+using Unity.MLAgents;
 
 namespace TrajectoryLogging
 {
@@ -25,16 +26,21 @@ namespace TrajectoryLogging
         private StreamWriter combineWriter;
         private StreamWriter blockWriter;
         private StreamWriter episodeMetaWriter;
+        private StreamWriter eventsWriter;
         private Dictionary<string, StreamWriter> agentWriters = new Dictionary<string, StreamWriter>();
         private int episodeIndex = 0;
 
         public bool Initialized { get; private set; } = false;
 
-        public void Init(string basePath)
+        private bool reportToStats = true;
+
+        public void Init(string basePath, bool reportToStats = true)
         {
             if (string.IsNullOrEmpty(basePath)) throw new ArgumentException("basePath required");
             rootPath = basePath;
             Directory.CreateDirectory(rootPath);
+
+            this.reportToStats = reportToStats;
 
             // Open/append combine.csv
             try
@@ -81,6 +87,18 @@ namespace TrajectoryLogging
                 blockWriter = null;
             }
 
+            // events.csv for arbitrary named events (also pushed to StatsRecorder if enabled)
+            try
+            {
+                eventsWriter = new StreamWriter(new FileStream(Path.Combine(episodePath, "events.csv"), FileMode.Create, FileAccess.Write, FileShare.ReadWrite));
+                eventsWriter.WriteLine("time,event_name,value");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"EpisodeLogger: Failed to create events writer: {e.Message}");
+                eventsWriter = null;
+            }
+
             try
             {
                 episodeMetaWriter = new StreamWriter(new FileStream(Path.Combine(episodePath, "episode_meta.csv"), FileMode.Create, FileAccess.Write, FileShare.ReadWrite));
@@ -105,6 +123,12 @@ namespace TrajectoryLogging
             {
                 Debug.LogError($"EpisodeLogger: Failed to write block: {e.Message}");
             }
+            // Optionally emit an event for visualization/summary
+            try
+            {
+                LogEvent("BlockPlaced", 1f);
+            }
+            catch { }
         }
 
         public void LogAgent(string agentId, Vector3 p, float active)
@@ -124,6 +148,15 @@ namespace TrajectoryLogging
             {
                 Debug.LogError($"EpisodeLogger: Failed to write agent {agentId}: {e.Message}");
             }
+            // small optional summary event per agent step (may be noisy)
+            try
+            {
+                if (reportToStats)
+                {
+                    Academy.Instance.StatsRecorder.Add($"Agent/{agentId}/Active", active);
+                }
+            }
+            catch { }
         }
 
         public void WriteEpisodeSummary(int episodeSteps, int episodeTimer, float durationSeconds, string outcome, string outcomeSeekersCol, string outcomeHidersCol, string winner, int hidersCaptured, int stepsHidden, float timeHidden, bool hidersPerfectGame, bool gracePeriodEnded)
@@ -171,12 +204,36 @@ namespace TrajectoryLogging
                     Debug.LogError($"EpisodeLogger: Failed to append to combine CSV: {e.Message}");
                 }
             }
+
+            // Also push summary scalars to StatsRecorder for TensorBoard visualization
+            try
+            {
+                if (reportToStats)
+                {
+                    var stats = Academy.Instance.StatsRecorder;
+                    stats.Add("Episode/EpisodeSteps", episodeSteps);
+                    stats.Add("Episode/EpisodeTimerSteps", episodeTimer);
+                    stats.Add("Episode/DurationSeconds", durationSeconds);
+                    // outcome as numeric flag: 1 = success (hiders), 0 = timeout/failure
+                    stats.Add("Episode/HidersCaptured", hidersCaptured);
+                    stats.Add("Episode/StepsHidden", stepsHidden);
+                    stats.Add("Episode/TimeHidden", timeHidden);
+                    stats.Add("Episode/HidersPerfectGame", hidersPerfectGame ? 1f : 0f);
+                    // Push a numeric indicator for winner
+                    stats.Add("Episode/WinnerIsHiders", winner == "Hiders" ? 1f : 0f);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"EpisodeLogger: failed to push summary stats: {e.Message}");
+            }
         }
 
         public void FlushWriters()
         {
             try { blockWriter?.Flush(); } catch { }
             foreach (var w in agentWriters.Values) { try { w.Flush(); } catch { } }
+            try { eventsWriter?.Flush(); } catch { }
         }
 
         public void Close()
@@ -185,7 +242,33 @@ namespace TrajectoryLogging
             agentWriters.Clear();
             try { blockWriter?.Close(); } catch { }
             try { episodeMetaWriter?.Close(); } catch { }
+            try { eventsWriter?.Close(); } catch { }
             try { combineWriter?.Close(); } catch { }
+        }
+
+        /// <summary>
+        /// Record a named event (written to events.csv and optionally pushed to StatsRecorder under Events/<name>).
+        /// </summary>
+        public void LogEvent(string name, float value)
+        {
+            try
+            {
+                eventsWriter?.WriteLine($"{Time.time:F4},{name},{value}");
+                eventsWriter?.Flush();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"EpisodeLogger: failed to write event {name}: {e.Message}");
+            }
+
+            if (reportToStats)
+            {
+                try
+                {
+                    Academy.Instance.StatsRecorder.Add($"Events/{name}", value);
+                }
+                catch { }
+            }
         }
     }
 }

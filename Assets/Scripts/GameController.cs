@@ -133,7 +133,8 @@ public class GameController : MonoBehaviour
         if (shouldLogEpisode)
         {
             episodeLogger.Init(basePath);
-            episodeLogger.StartNewEpisode();
+            episodeIndex = episodeLogger.StartNewEpisode();
+            try { episodeLogger.LogEvent("EpisodeStarted", episodeIndex); } catch { }
         }
 
         if (SystemArgs.GameParamsPath != null)
@@ -305,6 +306,15 @@ public class GameController : MonoBehaviour
                         {
                             hidersCaptured++;
                             hiders[j].WasCaptured = true;
+                            if (shouldLogEpisode)
+                            {
+                                try
+                                {
+                                    episodeLogger.LogEvent("HiderCaptured", j);
+                                    episodeLogger.LogEvent("HidersCapturedTotal", hidersCaptured);
+                                }
+                                catch { }
+                            }
                             foreach (RewardInfo rewardInfo in rewards)
                             {
                                 if (rewardInfo.type == RewardInfo.Type.Capture)
@@ -409,6 +419,10 @@ public class GameController : MonoBehaviour
             if (winCondition == WinCondition.Capture && hidersCaptured < seekersCaptureGoal) hidersWon = true;
             if (allowCapture && hidersCaptured == hiders.Count()) hidersWon = false;
             winner = hidersWon ? "Hiders" : "Seekers";
+        }
+        if (shouldLogEpisode)
+        {
+            try { episodeLogger.LogEvent("EpisodeEnded", winner == "Hiders" ? 1f : 0f); } catch { }
         }
 
         float durationSeconds = Time.fixedDeltaTime * (float)episodeTimer;
@@ -543,6 +557,7 @@ public class GameController : MonoBehaviour
         if (shouldLogEpisode)   
         {   
             episodeIndex = episodeLogger.StartNewEpisode();
+            try { episodeLogger.LogEvent("EpisodeStarted", episodeIndex); } catch { }
         }
     }
 
