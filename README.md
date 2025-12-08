@@ -1,14 +1,16 @@
 # ML-Agents Hide and Seek
 
-The visualisatoin is based on this repo [mohammed1916/eval_ppo](https://github.com/mohammed1916/eval_ppo), and there are submodules for results: [mohammed1916/unity-hide-and-seek-results](https://github.com/mohammed1916/unity-hide-and-seek-results) and trajectories: [mohammed1916/unity-hide-and-seek-trajectories](https://github.com/mohammed1916/unity-hide-and-seek-trajectories)
+Plugin Bracnh: Box_integration
+
+Developement Branch: Box_integration3
+
+The visualisation is based on this repo [mohammed1916/eval_ppo](https://github.com/mohammed1916/eval_ppo), and there are submodules for results: [mohammed1916/unity-hide-and-seek-results](https://github.com/mohammed1916/unity-hide-and-seek-results) and trajectories: [mohammed1916/unity-hide-and-seek-trajectories](https://github.com/mohammed1916/unity-hide-and-seek-trajectories)
 
 ```
 mlagents-learn config/ppo_trainer_ma_competitive.yaml --run-id=run40 --env-args game_params=config/predator_prey_v1/game_params.json arena_params=config/predator_prey_v1/arena_params.json
 ```
 
 ---
-
-
 
 Episode Outcome Analysis
 
@@ -44,22 +46,16 @@ Outputs:
 - `analysis_output/winner_counts.png`
 - `analysis_output/time_hidden_per_episode.png`
 - `analysis_output/episode_duration_hist.png`
-
 - `trajectory_logs_<runId>/combine.csv` - optional run-level combined CSV containing rows from per-episode metadata
-Notes:
-
+  Notes:
 - The script expects `episode_meta.csv` files (created by `GameController`) in `trajectory_logs_<runId>/episode_<N>/`.
 - The GameController logs `outcome` values as `Success`, `Failure`, or `Timeout` and `winner` as `Hiders` or `Seekers`.
 - The GameController logs `outcome` values as `Success`, `Failure`, or `Timeout` and `winner` as `Hiders` or `Seekers`.
+
   - By default, `outcome` is computed relative to `Seekers` (i.e., `Success` means Seekers won). You can configure which team should be considered the "success" team with the `successPerspective` field in the `GameController` inspector (options: `Seekers` or `Hiders`).
   - In addition to the configured `outcome` column, the per-team outcomes are also provided as `outcome_seekers` and `outcome_hiders` to facilitate analysis across both perspectives.
 
-
 ---
-
-
-
-
 
 ![screencap](/screencap/screencap1_360p.gif)
 
